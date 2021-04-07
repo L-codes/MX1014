@@ -165,13 +165,14 @@ func ParsePortRange(portList string) ([]string) {
 func ParseTarget(target string) ([]Target, error) {
     var targets []Target
     var ports []string
+
+    added := false
     if strings.ContainsAny(target, ":") {
         items := strings.Split(target, ":")
         target = items[0]
         ports = ParsePortRange(items[1])
         total += len(ports)
-    } else {
-        total += defaultPortsLen
+        added = true
     }
     if strings.ContainsAny(target, "/") {
         hosts, err := CIDR(target)
@@ -194,6 +195,9 @@ func ParseTarget(target string) ([]Target, error) {
         for _, host := range(hosts) {
             targets = append(targets, Target{host: host, ports: ports})
         }
+    }
+    if !added {
+        total += defaultPortsLen * len(targets)
     }
     return targets, nil
 }
@@ -427,7 +431,11 @@ func main() {
     }
 
     allTargetsSize := len(allTargets)
-    log.Printf("# %s Start scanning %d hosts...\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize)
+    EchoModePrompt := ""
+    if echo && !udpmode {
+        EchoModePrompt = " (TCP Echo)"
+    }
+    log.Printf("# %s Start scanning %d hosts...%s\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt)
     portScan(allTargets, defaultPorts)
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
