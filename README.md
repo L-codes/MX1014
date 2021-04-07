@@ -23,7 +23,7 @@
 
 
 ## Basic Usage
-1. 直接运行，查看帮助信息 (所有参数的与语法说明)
+1. 直接运行，查看帮助信息 (所有参数与语法说明)
 ```ruby
 $ ./mx1014
 
@@ -130,7 +130,8 @@ $ cat > ip.txt <<EOF
 heredoc> 192.168.1.134:80
 heredoc> 192.168.1.130:22
 EOF
-$ ./mx1014 -u -i ip.txt                                                                                                                                                                   # 2021/04/07 19:50:39 Start scanning 2 hosts...
+$ ./mx1014 -u -i ip.txt
+# 2021/04/07 19:50:39 Start scanning 2 hosts...
 
 
 # Finished. host: 2, task: 2, open: 0, pps: 1556, time: 0.00s
