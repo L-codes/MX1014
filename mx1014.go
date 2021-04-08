@@ -203,18 +203,18 @@ func ParseTarget(target string) ([]Target, error) {
 }
 
 
-func TcpConnect(targetAddr string) bool {
+// return open: 0, closed: 1, filtered: 3, unkown: -1
+func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
         errMsg := err.Error()
-        if verbose {
-            if strings.Contains(errMsg, "connection refused") {
-                fmt.Printf("# %s closed\n", targetAddr)
-            } else if strings.Contains(errMsg, "timeout") {
-                fmt.Printf("# %s filtered\n", targetAddr)
-            }
+        if strings.Contains(errMsg, "connection refused") {
+            return 1
+        } else if strings.Contains(errMsg, "timeout") {
+            return 2
+        } else {
+            return -1
         }
-        return false
     }
     defer conn.Close()
     if echo {
@@ -222,7 +222,7 @@ func TcpConnect(targetAddr string) bool {
         msg := strings.Replace(senddata, "%port%", port, -1)
         conn.Write([]byte(msg))
     }
-    return true
+    return 0
 }
 
 
@@ -264,13 +264,24 @@ func portScan(targets []Target, dports []string) int {
                 if udpmode {
                     UdpConnect(targetAddr)
                 } else {
-                    openFlag := TcpConnect(targetAddr)
-                    if openFlag {
-                        mutex.Lock()
+                    flag := TcpConnect(targetAddr)
+                    mutex.Lock()
+                    switch flag {
+                    case 0:
                         openCount++
                         log.Print(targetAddr)
-                        mutex.Unlock()
+                    case 1:
+                        if verbose {
+                            fmt.Printf("# %s closed\n", targetAddr)
+                        }
+                    case 2:
+                        if verbose {
+                            fmt.Printf("# %s filtered\n", targetAddr)
+                        }
+                    case -1:
+                        log.Printf("# %s unkown\n", targetAddr)
                     }
+                    mutex.Unlock()
                 }
                 mutex.Lock()
                 doneCount++
