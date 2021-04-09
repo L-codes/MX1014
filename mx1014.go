@@ -52,22 +52,21 @@ func ShuffleTarget(vals []Target) []Target {
 
 
 func inc(ip net.IP) {
-    for j := len(ip) - 1; j >= 0; j-- {
-        ip[j]++
-        if ip[j] > 0 {
+    for i := len(ip) - 1; i >= 0; i-- {
+        ip[i]++
+        if ip[i] > 0 {
             break
         }
     }
 }
 
 
-func CIDR(cidr string) ([]string, error) {
+func IPCIDR(cidr string) ([]string, error) {
     var hosts []string
     ip, ipnet, err := net.ParseCIDR(cidr)
     if err != nil {
         return nil, err
     }
-
     for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
         hosts = append(hosts, ip.String())
     }
@@ -172,11 +171,14 @@ func ParseTarget(target string) ([]Target, error) {
         target = items[0]
         ports = ParsePortRange(items[1])
         portsLen = len(ports)
+        if !order {
+            ports = Shuffle(ports)
+        }
     } else {
         portsLen = defaultPortsLen
     }
     if strings.ContainsAny(target, "/") {
-        hosts, err := CIDR(target)
+        hosts, err := IPCIDR(target)
         if err != nil {
             return nil, err
         }
