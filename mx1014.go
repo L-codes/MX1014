@@ -240,7 +240,7 @@ func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
         errMsg := err.Error()
-        if strings.Contains(errMsg, "connection refused") {
+        if strings.Contains(errMsg, "refused") {
             return 1
         } else if strings.Contains(errMsg, "timeout") {
             return 2
