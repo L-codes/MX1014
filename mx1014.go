@@ -51,6 +51,20 @@ func ShuffleTarget(vals []Target) []Target {
 }
 
 
+func RemoveRepeatedElement(arr []string) []string {
+    var newArr []string
+    set := make(map[string]bool)
+    for _, element := range arr {
+        repeat := set[element]
+        if !repeat {
+            newArr = append(newArr, element)
+            set[element] = true
+        }
+    }
+    return newArr
+}
+
+
 func inc(ip net.IP) {
     for i := len(ip) - 1; i >= 0; i-- {
         ip[i]++
@@ -59,6 +73,20 @@ func inc(ip net.IP) {
         }
     }
 }
+
+
+func Intersect(a []string, b[]string) []string {
+    var arr []string
+    for _, i := range a {
+        for _, j := range b {
+            if i == j {
+                arr = append(arr, i)
+            }
+        }
+    }
+    return arr
+}
+
 
 
 func IPCIDR(cidr string) ([]string, error) {
@@ -170,10 +198,13 @@ func ParseTarget(target string) ([]Target, error) {
         items := strings.Split(target, ":")
         target = items[0]
         ports = ParsePortRange(items[1])
-        portsLen = len(ports)
         if !order {
             ports = Shuffle(ports)
         }
+        portsIntersect := Intersect(commonPorts, ports)
+        ports = append(portsIntersect, ports...)
+        ports = RemoveRepeatedElement(ports)
+        portsLen = len(ports)
     } else {
         portsLen = defaultPortsLen
     }
@@ -297,18 +328,20 @@ func portScan(targets []Target, dports []string) int {
                         case 1: //closed
                             targetFilterCount[host] = 65536
                             if verbose {
-                                fmt.Printf("# %s closed\n", targetAddr)
+                                fmt.Printf("# closed: %s\n", targetAddr)
                             }
                         case 2: //filtered
                             if filterCount < 65536 {
                                 targetFilterCount[host]++
                             }
                             if verbose {
-                                fmt.Printf("# %s filtered\n", targetAddr)
+                                fmt.Printf("# filtered: %s\n", targetAddr)
                             }
                         case 3: //noroute
                             targetFilterCount[host] = autoDiscard
-                            log.Printf("# %s no route to host, discard the host\n", host)
+                            if verbose {
+                                log.Printf("# %s no route to host, discard the host\n", host)
+                            }
                         case 4: //denied
                             targetFilterCount[host] = autoDiscard
                         case 5: //down
@@ -367,6 +400,8 @@ var (
     startTime       time.Time
 
     targetFilterCount = make(map[string]int)
+    rawCommonPorts    = "22,80,81,82,88,89,135,137,138,139,389,443,445,1080,1433,1521,3128,3308,3389,4430,4433,4560,5432,5800,5900,5985,5986,6379,6588,7001,7002,8000,8001,8002,8009,8161,8080,8081,8082,8090,9000,9090,9043,9060,9200,9875,8443,8880,8888"
+    commonPorts       = ParsePortRange(rawCommonPorts)
 )
 
 
@@ -379,7 +414,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.0.0
+  .001              1001               Version 1.1.0
   .1.              ...1.
 
 
@@ -406,21 +441,20 @@ Options:
 
 
 func init() {
-    default_ports := "22,80,81,82,88,89,135,137,138,139,389,443,445,1080,1433,1521,3128,3308,3389,4430,4433,4560,5432,5800,5900,5985,5986,6379,6588,7001,7002,8000,8001,8002,8009,8161,8080,8081,8082,8090,9000,9090,9043,9060,9200,9875,8443,8880,8888"
-    flag.StringVar(&portRanges,  "p", default_ports, "Ports  Default port ranges. (Default is common ports")
-    flag.StringVar(&addPort,     "ap", "",           "Ports  Append default ports")
-    flag.IntVar(&numOfgoroutine, "t", 256,           "Int    The Number of Goroutine (Default is 256)")
-    flag.IntVar(&timeout,        "T", 1014,          "Int    TCP Connect Timeout (Default is 1014ms)")
-    flag.StringVar(&infile,      "i", "",            "File   Target input from list")
-    flag.StringVar(&outfile,     "o", "",            "File   Output file path")
-    flag.BoolVar(&order,         "r", false,         "       Scan in import order")
-    flag.BoolVar(&udpmode,       "u", false,         "       UDP spray")
-    flag.BoolVar(&echo,          "e", false,         "       Echo mode (TCP needs to be manually)")
-    flag.IntVar(&autoDiscard,    "a", 1014,          "Int    Too many filtered, Discard the host (Default is 1014)")
-    flag.BoolVar(&forceScan,     "A", false,         "       Disable auto disable")
-    flag.StringVar(&senddata,    "d", "%port%\n",    "Str    Specify Echo mode data (Default is \"%port%\\n\")")
-    flag.IntVar(&progressDelay,  "D", 5,             "Int    Progress Bar Refresh Delay (Default is 5s)")
-    flag.BoolVar(&verbose,       "v", false,         "       Verbose mode")
+    flag.StringVar(&portRanges,  "p", rawCommonPorts, "Ports  Default port ranges. (Default is common ports")
+    flag.StringVar(&addPort,     "ap", "",            "Ports  Append default ports")
+    flag.IntVar(&numOfgoroutine, "t", 256,            "Int    The Number of Goroutine (Default is 256)")
+    flag.IntVar(&timeout,        "T", 1014,           "Int    TCP Connect Timeout (Default is 1014ms)")
+    flag.StringVar(&infile,      "i", "",             "File   Target input from list")
+    flag.StringVar(&outfile,     "o", "",             "File   Output file path")
+    flag.BoolVar(&order,         "r", false,          "       Scan in import order")
+    flag.BoolVar(&udpmode,       "u", false,          "       UDP spray")
+    flag.BoolVar(&echo,          "e", false,          "       Echo mode (TCP needs to be manually)")
+    flag.IntVar(&autoDiscard,    "a", 1014,           "Int    Too many filtered, Discard the host (Default is 1014)")
+    flag.BoolVar(&forceScan,     "A", false,          "       Disable auto disable")
+    flag.StringVar(&senddata,    "d", "%port%\n",     "Str    Specify Echo mode data (Default is \"%port%\\n\")")
+    flag.IntVar(&progressDelay,  "D", 5,              "Int    Progress Bar Refresh Delay (Default is 5s)")
+    flag.BoolVar(&verbose,       "v", false,          "       Verbose mode")
     flag.Usage = usage
 }
 
@@ -435,6 +469,11 @@ func main() {
         portRanges += ( "," + addPort )
     }
     defaultPorts := ParsePortRange(portRanges)
+    if !order {
+        defaultPorts = Shuffle(defaultPorts)
+    }
+    defaultPorts = append(commonPorts, defaultPorts...)
+    defaultPorts = RemoveRepeatedElement(defaultPorts)
     defaultPortsLen = len(defaultPorts)
 
     var rawTargets []string
@@ -468,7 +507,6 @@ func main() {
 
     if !order {
         allTargets   = ShuffleTarget(allTargets)
-        defaultPorts = Shuffle(defaultPorts)
     }
 
     if len(allTargets) == 0 {
@@ -504,5 +542,5 @@ func main() {
     }
     aliveRate := hostAlive * 100.0 / allTargetsSize
     endTime := time.Now().Format("2006/01/02 15:04:05")
-    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %.2fs\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, spendTime)
+    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %.0fs\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, spendTime)
 }
