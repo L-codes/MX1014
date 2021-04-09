@@ -340,6 +340,7 @@ func portScan(targets []Target, dports []string) int {
 
 var (
     portRanges      string
+    addPort         string
     numOfgoroutine  int
     outfile         string
     infile          string
@@ -388,7 +389,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "i", "t", "T", "o", "r", "u", "e", "d", "D", "a", "A", "v"}
+    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "d", "D", "a", "A", "v"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -401,6 +402,7 @@ Options:
 func init() {
     default_ports := "22,80,81,82,88,89,135,137,138,139,389,443,445,1080,1433,1521,3128,3308,3389,4430,4433,4560,5432,5800,5900,5985,5986,6379,6588,7001,7002,8000,8001,8002,8009,8161,8080,8081,8082,8090,9000,9090,9043,9060,9200,9875,8443,8880,8888"
     flag.StringVar(&portRanges,  "p", default_ports, "Ports  Default port ranges. (Default is common ports")
+    flag.StringVar(&addPort,     "ap", "",           "Ports  Append default ports")
     flag.IntVar(&numOfgoroutine, "t", 256,           "Int    The Number of Goroutine (Default is 256)")
     flag.IntVar(&timeout,        "T", 1014,          "Int    TCP Connect Timeout (Default is 1014ms)")
     flag.StringVar(&infile,      "i", "",            "File   Target input from list")
@@ -423,6 +425,9 @@ func main() {
     startTime = time.Now()
     flag.Parse()
 
+    if addPort != "" {
+        portRanges += ( "," + addPort )
+    }
     defaultPorts := ParsePortRange(portRanges)
     defaultPortsLen = len(defaultPorts)
 
@@ -481,7 +486,7 @@ func main() {
     if echo && !udpmode {
         EchoModePrompt = " (TCP Echo)"
     }
-    log.Printf("# %s Start scanning %d hosts (task: %d)...%s\n\n", startTime.Format("2006/01/02 15:04:05"), total, allTargetsSize, EchoModePrompt)
+    log.Printf("# %s Start scanning %d hosts...%s\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt)
     portScan(allTargets, defaultPorts)
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
