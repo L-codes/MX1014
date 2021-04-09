@@ -256,7 +256,7 @@ func TcpConnect(targetAddr string) int {
         }
     }
     defer conn.Close()
-    if echo {
+    if echoMode {
         port := strings.Split(targetAddr, ":")[1]
         msg := strings.Replace(senddata, "%port%", port, -1)
         conn.Write([]byte(msg))
@@ -314,9 +314,9 @@ func portScan(targets []Target, dports []string) int {
                     }
                     mutex.Unlock()
                     // case filterCount
-                    // when 65536..             when forcescan
                     // when ...autoDiscard      when continuescan
                     // when autoDiscard...65536 when stopscan
+                    // when 65536..             when forcescan
                     if filterCount >= 65536 || filterCount < autoDiscard {
                         flag := TcpConnect(targetAddr)
                         mutex.Lock()
@@ -327,7 +327,7 @@ func portScan(targets []Target, dports []string) int {
                             log.Print(targetAddr)
                         case 1: //closed
                             targetFilterCount[host] = 65536
-                            if verbose {
+                            if verbose || closedMode {
                                 fmt.Printf("# closed: %s\n", targetAddr)
                             }
                         case 2: //filtered
@@ -389,7 +389,8 @@ var (
     verbose         bool
     udpmode         bool
     forceScan       bool
-    echo            bool
+    echoMode        bool
+    closedMode      bool
     senddata        string
     total           int
     openCount       int
@@ -430,7 +431,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "d", "D", "a", "A", "v"}
+    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "a", "A", "v"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -449,7 +450,8 @@ func init() {
     flag.StringVar(&outfile,     "o", "",             "File   Output file path")
     flag.BoolVar(&order,         "r", false,          "       Scan in import order")
     flag.BoolVar(&udpmode,       "u", false,          "       UDP spray")
-    flag.BoolVar(&echo,          "e", false,          "       Echo mode (TCP needs to be manually)")
+    flag.BoolVar(&echoMode,      "e", false,          "       Echo mode (TCP needs to be manually)")
+    flag.BoolVar(&closedMode,    "c", false,          "       Allow display of closed ports (Only TCP)")
     flag.IntVar(&autoDiscard,    "a", 1014,           "Int    Too many filtered, Discard the host (Default is 1014)")
     flag.BoolVar(&forceScan,     "A", false,          "       Disable auto disable")
     flag.StringVar(&senddata,    "d", "%port%\n",     "Str    Specify Echo mode data (Default is \"%port%\\n\")")
@@ -527,7 +529,7 @@ func main() {
 
     allTargetsSize := len(allTargets)
     EchoModePrompt := ""
-    if echo && !udpmode {
+    if echoMode && !udpmode {
         EchoModePrompt = " (TCP Echo)"
     }
     log.Printf("# %s Start scanning %d hosts...%s\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt)
