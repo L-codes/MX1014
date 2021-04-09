@@ -165,14 +165,15 @@ func ParsePortRange(portList string) ([]string) {
 func ParseTarget(target string) ([]Target, error) {
     var targets []Target
     var ports []string
+    var portsLen int
 
-    added := false
     if strings.ContainsAny(target, ":") {
         items := strings.Split(target, ":")
         target = items[0]
         ports = ParsePortRange(items[1])
-        total += len(ports)
-        added = true
+        portsLen = len(ports)
+    } else {
+        portsLen = defaultPortsLen
     }
     if strings.ContainsAny(target, "/") {
         hosts, err := CIDR(target)
@@ -196,14 +197,12 @@ func ParseTarget(target string) ([]Target, error) {
             targets = append(targets, Target{host: host, ports: ports})
         }
     }
-    if !added {
-        total += defaultPortsLen * len(targets)
-    }
+    total += portsLen * len(targets)
     return targets, nil
 }
 
 
-// return open: 0, closed: 1, filtered: 3, unkown: -1
+// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, unkown: -1
 func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
@@ -212,7 +211,12 @@ func TcpConnect(targetAddr string) int {
             return 1
         } else if strings.Contains(errMsg, "timeout") {
             return 2
+        } else if strings.Contains(errMsg, "no route to host") {
+            return 3
+        } else if strings.Contains(errMsg, "permission denied") {
+            return 4
         } else {
+            log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
         }
     }
@@ -258,30 +262,55 @@ func portScan(targets []Target, dports []string) int {
         }
     }()
 
+
     for i := 0; i <= poolCount; i++ {
         go func() {
             for targetAddr := range targetsChan {
                 if udpmode {
                     UdpConnect(targetAddr)
                 } else {
-                    flag := TcpConnect(targetAddr)
                     mutex.Lock()
-                    switch flag {
-                    case 0:
-                        openCount++
-                        log.Print(targetAddr)
-                    case 1:
-                        if verbose {
-                            fmt.Printf("# %s closed\n", targetAddr)
-                        }
-                    case 2:
-                        if verbose {
-                            fmt.Printf("# %s filtered\n", targetAddr)
-                        }
-                    case -1:
-                        log.Printf("# %s unkown\n", targetAddr)
+                    host := strings.Split(targetAddr, ":")[0]
+                    var filterCount int
+                    if forceScan {
+                        filterCount = 65536
+                    } else {
+                        filterCount = targetFilterCount[host]
                     }
                     mutex.Unlock()
+                    // case filterCount
+                    // when 65536..             when forcescan
+                    // when ...autoDiscard      when continuescan
+                    // when autoDiscard...65536 when stopscan
+                    if filterCount >= 65536 || filterCount < autoDiscard {
+                        flag := TcpConnect(targetAddr)
+                        mutex.Lock()
+                        switch flag {
+                        case 0: //open
+                            targetFilterCount[host] = 65536
+                            openCount++
+                            log.Print(targetAddr)
+                        case 1: //closed
+                            targetFilterCount[host] = 65536
+                            if verbose {
+                                fmt.Printf("# %s closed\n", targetAddr)
+                            }
+                        case 2: //filtered
+                            if filterCount < 65536 {
+                                targetFilterCount[host]++
+                            }
+                            if verbose {
+                                fmt.Printf("# %s filtered\n", targetAddr)
+                            }
+                        case 3: //noroute
+                            targetFilterCount[host] = autoDiscard
+                            log.Printf("# %s no route to host, discard the host\n", host)
+                        case 4: //denied
+                            targetFilterCount[host] = autoDiscard
+                        case -1: //unkown
+                        }
+                        mutex.Unlock()
+                    }
                 }
                 mutex.Lock()
                 doneCount++
@@ -315,9 +344,11 @@ var (
     outfile         string
     infile          string
     timeout         int
+    autoDiscard     int
     order           bool
     verbose         bool
     udpmode         bool
+    forceScan       bool
     echo            bool
     senddata        string
     total           int
@@ -327,6 +358,8 @@ var (
     progressDelay   int
     mutex           sync.Mutex
     startTime       time.Time
+
+    targetFilterCount = make(map[string]int)
 )
 
 
@@ -355,7 +388,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "i", "t", "T", "o", "r", "u", "e", "d", "D", "v"}
+    optsOrder := []string{"p", "i", "t", "T", "o", "r", "u", "e", "d", "D", "a", "A", "v"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -375,6 +408,8 @@ func init() {
     flag.BoolVar(&order,         "r", false,         "       Scan in import order")
     flag.BoolVar(&udpmode,       "u", false,         "       UDP spray")
     flag.BoolVar(&echo,          "e", false,         "       Echo mode (TCP needs to be manually)")
+    flag.IntVar(&autoDiscard,    "a", 1014,          "Int    Too many filtered, Discard the host (Default is 1014)")
+    flag.BoolVar(&forceScan,     "A", false,         "       Disable auto disable")
     flag.StringVar(&senddata,    "d", "%port%\n",    "Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,             "Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,         "       Verbose mode")
@@ -446,7 +481,7 @@ func main() {
     if echo && !udpmode {
         EchoModePrompt = " (TCP Echo)"
     }
-    log.Printf("# %s Start scanning %d hosts...%s\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt)
+    log.Printf("# %s Start scanning %d hosts (task: %d)...%s\n\n", startTime.Format("2006/01/02 15:04:05"), total, allTargetsSize, EchoModePrompt)
     portScan(allTargets, defaultPorts)
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
