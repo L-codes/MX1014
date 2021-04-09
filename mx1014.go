@@ -202,7 +202,7 @@ func ParseTarget(target string) ([]Target, error) {
 }
 
 
-// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, unkown: -1
+// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, unkown: -1
 func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
@@ -215,6 +215,8 @@ func TcpConnect(targetAddr string) int {
             return 3
         } else if strings.Contains(errMsg, "permission denied") {
             return 4
+        } else if strings.Contains(errMsg, "host is down") {
+            return 5
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
@@ -306,6 +308,8 @@ func portScan(targets []Target, dports []string) int {
                             targetFilterCount[host] = autoDiscard
                             log.Printf("# %s no route to host, discard the host\n", host)
                         case 4: //denied
+                            targetFilterCount[host] = autoDiscard
+                        case 5: //down
                             targetFilterCount[host] = autoDiscard
                         case -1: //unkown
                         }
@@ -490,5 +494,13 @@ func main() {
     portScan(allTargets, defaultPorts)
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
-    log.Printf("\n# Finished. host: %d, task: %d, open: %d, pps: %.0f, time: %.2fs\n", allTargetsSize, total, openCount, pps, spendTime)
+    hostAlive := 0
+    for _, i := range targetFilterCount {
+        if i >= 65536 {
+            hostAlive++
+        }
+    }
+    aliveRate := hostAlive * 100.0 / allTargetsSize
+    endTime := time.Now().Format("2006/01/02 15:04:05")
+    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %.2fs\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, spendTime)
 }
