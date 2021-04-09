@@ -442,21 +442,21 @@ Options:
 
 
 func init() {
-    flag.StringVar(&portRanges,  "p", rawCommonPorts, "Ports  Default port ranges. (Default is common ports")
+    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is common ports")
     flag.StringVar(&addPort,     "ap", "",            "Ports  Append default ports")
-    flag.IntVar(&numOfgoroutine, "t", 256,            "Int    The Number of Goroutine (Default is 256)")
-    flag.IntVar(&timeout,        "T", 1014,           "Int    TCP Connect Timeout (Default is 1014ms)")
-    flag.StringVar(&infile,      "i", "",             "File   Target input from list")
-    flag.StringVar(&outfile,     "o", "",             "File   Output file path")
-    flag.BoolVar(&order,         "r", false,          "       Scan in import order")
-    flag.BoolVar(&udpmode,       "u", false,          "       UDP spray")
-    flag.BoolVar(&echoMode,      "e", false,          "       Echo mode (TCP needs to be manually)")
-    flag.BoolVar(&closedMode,    "c", false,          "       Allow display of closed ports (Only TCP)")
-    flag.IntVar(&autoDiscard,    "a", 1014,           "Int    Too many filtered, Discard the host (Default is 1014)")
-    flag.BoolVar(&forceScan,     "A", false,          "       Disable auto disable")
-    flag.StringVar(&senddata,    "d", "%port%\n",     "Str    Specify Echo mode data (Default is \"%port%\\n\")")
-    flag.IntVar(&progressDelay,  "D", 5,              "Int    Progress Bar Refresh Delay (Default is 5s)")
-    flag.BoolVar(&verbose,       "v", false,          "       Verbose mode")
+    flag.IntVar(&numOfgoroutine, "t", 256,            " Int    The Number of Goroutine (Default is 256)")
+    flag.IntVar(&timeout,        "T", 1014,           " Int    TCP Connect Timeout (Default is 1014ms)")
+    flag.StringVar(&infile,      "i", "",             " File   Target input from list")
+    flag.StringVar(&outfile,     "o", "",             " File   Output file path")
+    flag.BoolVar(&order,         "r", false,          "        Scan in import order")
+    flag.BoolVar(&udpmode,       "u", false,          "        UDP spray")
+    flag.BoolVar(&echoMode,      "e", false,          "        Echo mode (TCP needs to be manually)")
+    flag.BoolVar(&closedMode,    "c", false,          "        Allow display of closed ports (Only TCP)")
+    flag.IntVar(&autoDiscard,    "a", 1014,           " Int    Too many filtered, Discard the host (Default is 1014)")
+    flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
+    flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
+    flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
+    flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
     flag.Usage = usage
 }
 

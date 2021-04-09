@@ -50,7 +50,7 @@ Target Example:
 
 Options:
     -p Ports  Default port ranges. (Default is common ports
-    -ap Ports  Append default ports
+    -ap Ports Append default ports
     -i File   Target input from list
     -t Int    The Number of Goroutine (Default is 256)
     -T Int    TCP Connect Timeout (Default is 1014ms)
