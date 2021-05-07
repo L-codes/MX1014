@@ -28,6 +28,14 @@ func ErrPrint(msg string) {
     os.Exit(1)
 }
 
+func secondToTime(second int) string {
+    minute := second / 60
+    if minute == 0 {
+        return fmt.Sprintf("%ds", second)
+    }else{
+        return fmt.Sprintf("%dm%ds", minute, second % 60)
+    }
+}
 
 func Shuffle(vals []string) []string {
   r := rand.New(rand.NewSource(time.Now().Unix()))
@@ -290,10 +298,12 @@ func portScan(targets []Target, dports []string) int {
     go func() {
         for {
             time.Sleep(time.Second * time.Duration(progressDelay))
-            rate := doneCount * 100.0 / total
+            rate := float64(doneCount) * 100 / float64(total)
             second := time.Since(startTime).Seconds()
             pps := float64(doneCount) / second
-            log.Printf("# Progress (%d/%d) open: %d, pps: %.0f, rate: %d%%\n", doneCount, total, openCount, pps, rate)
+            remaining := second * 100 / float64(rate) - second
+            remainingTime := secondToTime(int(remaining))
+            log.Printf("# Progress (%d/%d) open: %d, pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, total, openCount, pps, rate, remainingTime)
         }
     }()
 
@@ -401,7 +411,7 @@ var (
     startTime       time.Time
 
     targetFilterCount = make(map[string]int)
-    rawCommonPorts    = "22,80,81,82,88,89,135,137,138,139,389,443,445,1080,1433,1521,3128,3308,3389,4430,4433,4560,5432,5800,5900,5985,5986,6379,6588,7001,7002,8000,8001,8002,8009,8161,8080,8081,8082,8090,9000,9090,9043,9060,9200,9875,8443,8880,8888"
+    rawCommonPorts    = "22,80,81,82,88,89,135,137,138,139,389,443,445,1024,1080,1433,1521,3128,3308,3389,4430,4433,4560,5432,5800,5900,5985,5986,6379,6588,6868,7001,7002,8000,8001,8002,8009,8182,8161,8080,8081,8082,8090,8443,8880,8888,9000,9090,9043,9060,9200,9080,9875,9999"
     commonPorts       = ParsePortRange(rawCommonPorts)
 )
 
@@ -415,7 +425,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.1.0
+  .001              1001               Version 1.1.1
   .1.              ...1.
 
 
@@ -474,7 +484,6 @@ func main() {
     if !order {
         defaultPorts = Shuffle(defaultPorts)
     }
-    defaultPorts = append(commonPorts, defaultPorts...)
     defaultPorts = RemoveRepeatedElement(defaultPorts)
     defaultPortsLen = len(defaultPorts)
 
