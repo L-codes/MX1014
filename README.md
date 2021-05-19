@@ -20,6 +20,7 @@
 * 支持导入多个 TARGET
 * 默认主机和端口均为随机循序扫描
 * windows 最低环境支持 xp/2003 等 (即兼容 Golang 1.10.8)
+* linux 支持 CentOS5 (Linux 2.6.18) 等 (即兼容 Golang 1.10.8)
 * 支持 TCP/UDP 的 Echo 回显数据发送 (UDP 不会返回端口状态)
 * 支持 TCP closed 状态显示
 
