@@ -401,6 +401,7 @@ var (
     forceScan       bool
     echoMode        bool
     closedMode      bool
+    showPorts       bool
     senddata        string
     total           int
     openCount       int
@@ -425,7 +426,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.1.1
+  .001              1001               Version 1.1.2
   .1.              ...1.
 
 
@@ -441,7 +442,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "a", "A", "v"}
+    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "a", "A", "v", "sp"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -452,7 +453,7 @@ Options:
 
 
 func init() {
-    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is common ports")
+    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is common ports)")
     flag.StringVar(&addPort,     "ap", "",            "Ports  Append default ports")
     flag.IntVar(&numOfgoroutine, "t", 256,            " Int    The Number of Goroutine (Default is 256)")
     flag.IntVar(&timeout,        "T", 1014,           " Int    TCP Connect Timeout (Default is 1014ms)")
@@ -467,6 +468,7 @@ func init() {
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
+    flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports")
     flag.Usage = usage
 }
 
@@ -476,6 +478,11 @@ func main() {
     openCount = 0
     startTime = time.Now()
     flag.Parse()
+
+    if showPorts {
+        fmt.Println(rawCommonPorts)
+        os.Exit(0)
+    }
 
     if addPort != "" {
         portRanges += ( "," + addPort )
@@ -553,5 +560,5 @@ func main() {
     }
     aliveRate := hostAlive * 100.0 / allTargetsSize
     endTime := time.Now().Format("2006/01/02 15:04:05")
-    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %.0fs\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, spendTime)
+    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, secondToTime(int(spendTime)))
 }
