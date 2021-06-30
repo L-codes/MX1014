@@ -7,7 +7,7 @@
 
 ## Version
 
-1.1.1 - [版本修改日志](CHANGELOG.md)
+1.2.0 - [版本修改日志](CHANGELOG.md)
 
 
 
@@ -36,7 +36,7 @@ $ ./mx1014
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.1.1
+  .001              1001               Version 1.2.0
   .1.              ...1.
 
 
@@ -50,21 +50,22 @@ Target Example:
     github.com:22,443,8443
 
 Options:
-    -p Ports  Default port ranges. (Default is common ports
-    -ap Ports Append default ports
-    -i File   Target input from list
-    -t Int    The Number of Goroutine (Default is 256)
-    -T Int    TCP Connect Timeout (Default is 1014ms)
-    -o File   Output file path
-    -r        Scan in import order
-    -u        UDP spray
-    -e        Echo mode (TCP needs to be manually)
-    -c        Allow display of closed ports (Only TCP)
-    -d Str    Specify Echo mode data (Default is "%port%\n")
-    -D Int    Progress Bar Refresh Delay (Default is 5s)
-    -a Int    Too many filtered, Discard the host (Default is 1014)
-    -A        Disable auto disable
-    -v        Verbose mode
+    -p  Ports  Default port ranges. (Default is common ports)
+    -ap Ports  Append default ports
+    -i  File   Target input from list
+    -t  Int    The Number of Goroutine (Default is 256)
+    -T  Int    TCP Connect Timeout (Default is 1514ms)
+    -o  File   Output file path
+    -r         Scan in import order
+    -u         UDP spray
+    -e         Echo mode (TCP needs to be manually)
+    -c         Allow display of closed ports (Only TCP)
+    -d  Str    Specify Echo mode data (Default is "%port%\n")
+    -D  Int    Progress Bar Refresh Delay (Default is 5s)
+    -a  Int    Too many filtered, Discard the host (Default is 1014)
+    -A         Disable auto disable
+    -v         Verbose mode
+    -sp        Only show default ports
 ```
 
 2. 简单扫描数十个常用默认端口
@@ -170,12 +171,15 @@ $ ./mx1014 -A 192.168.1.134:1-65535
 $ ./mx1014 -c 192.168.1.134:1-65535
 ```
 
+6. 根据 TCP 探测存活主机
+```ruby
+$ ./mx1014 -l -p 80 192.168.1.134
+```
+
 
 ## TODO
 
  * 代码逻辑优化
-
- * 增加 nmap -PT 等存活探测功能
 
 
 ## License
