@@ -334,10 +334,16 @@ func portScan(targets []Target, dports []string) int {
                         case 0: //open
                             targetFilterCount[host] = 65536
                             openCount++
-                            log.Print(targetAddr)
+                            if aliveMode {
+                                log.Print(host)
+                            } else {
+                                log.Print(targetAddr)
+                            }
                         case 1: //closed
                             targetFilterCount[host] = 65536
-                            if verbose || closedMode {
+                            if aliveMode {
+                                log.Print(host)
+                            } else if verbose || closedMode {
                                 fmt.Printf("# closed: %s\n", targetAddr)
                             }
                         case 2: //filtered
@@ -402,6 +408,7 @@ var (
     echoMode        bool
     closedMode      bool
     showPorts       bool
+    aliveMode       bool
     senddata        string
     total           int
     openCount       int
@@ -465,6 +472,7 @@ func init() {
     flag.BoolVar(&closedMode,    "c", false,          "        Allow display of closed ports (Only TCP)")
     flag.IntVar(&autoDiscard,    "a", 1014,           " Int    Too many filtered, Discard the host (Default is 1014)")
     flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
+    flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
