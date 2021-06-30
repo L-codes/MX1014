@@ -176,10 +176,14 @@ func ParsePortRange(portList string) ([]string) {
             a := strings.Split(i, "-")
             startPort, err := strconv.Atoi(a[0])
             if err != nil {
+                startPort = 1
+            } else if startPort < 1 {
                 ErrPrint("StartPort strconv error")
             }
             endPort, err := strconv.Atoi(a[1])
             if err != nil {
+                endPort = 65535
+            } else if endPort > 65535 {
                 ErrPrint("EndPort strconv error")
             }
             for j := startPort; j <= endPort; j++ {
