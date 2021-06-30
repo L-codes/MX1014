@@ -213,8 +213,8 @@ func ParseTarget(target string) ([]Target, error) {
         if !order {
             ports = Shuffle(ports)
         }
-        portsIntersect := Intersect(commonPorts, ports)
-        ports = append(portsIntersect, ports...)
+        commonPortsIntersect := Intersect(commonPorts, ports)
+        ports = append(commonPortsIntersect, ports...)
         ports = RemoveRepeatedElement(ports)
         portsLen = len(ports)
     } else {
@@ -503,6 +503,8 @@ func main() {
     if !order {
         defaultPorts = Shuffle(defaultPorts)
     }
+    commonPortsIntersect := Intersect(commonPorts, defaultPorts)
+    defaultPorts = append(commonPortsIntersect, defaultPorts...)
     defaultPorts = RemoveRepeatedElement(defaultPorts)
     defaultPortsLen = len(defaultPorts)
 
