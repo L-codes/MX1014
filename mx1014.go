@@ -1,19 +1,18 @@
 package main
 
-
 import (
-    "fmt"
+    "bufio"
     "flag"
+    "fmt"
     "io"
     "log"
+    "math/rand"
     "net"
     "os"
     "strconv"
     "strings"
     "sync"
-    "math/rand"
     "time"
-    "bufio"
 )
 
 
@@ -213,7 +212,7 @@ func ParseTarget(target string) ([]Target, error) {
         if !order {
             ports = Shuffle(ports)
         }
-        commonPortsIntersect := Intersect(commonPorts, ports)
+        commonPortsIntersect := AdjustPortsList(ports)
         ports = append(commonPortsIntersect, ports...)
         ports = RemoveRepeatedElement(ports)
         portsLen = len(ports)
@@ -396,6 +395,23 @@ func portScan(targets []Target, dports []string) int {
     return 0
 }
 
+func GetCommonPortsMap(portsList []string) map[string]bool {
+    portsMap := make(map[string]bool)
+    for _,i := range portsList {
+        portsMap[i]=true
+    }
+    return portsMap
+}
+
+func AdjustPortsList(portsList []string) []string {
+    var resList []string
+    for _,i := range portsList{
+        if commonPortsMap[i] {
+            resList=append(resList, i)
+        }
+    }
+    return resList
+}
 
 var (
     portRanges      string
@@ -425,6 +441,7 @@ var (
     targetFilterCount = make(map[string]int)
     rawCommonPorts    = "22,80,81,82,83,84,85,86,88,89,90,99,135,137,138,139,389,443,445,800,801,808,880,888,889,1000,1010,1024,1080,1433,1521,1980,3000,3128,3308,3389,3505,4430,4433,4560,5432,5555,5800,5900,5985,5986,6080,6379,6588,6677,6868,7000,7001,7002,7003,7005,7007,7070,7080,7200,7777,7890,8000,8001,8002,8003,8004,8006,8008,8010,8011,8012,8016,8020,8053,8060,8070,8080,8081,8082,8083,8084,8085,8086,8087,8088,8089,8090,8091,8099,8100,8161,8180,8181,8182,8200,8280,8300,8360,8443,8484,8800,8880,8881,8888,8899,8989,9000,9001,9002,9043,9060,9080,9081,9085,9090,9091,9200,9875,9999,10000,18080,28017,38501,38888,41516"
     commonPorts       = ParsePortRange(rawCommonPorts)
+    commonPortsMap    = GetCommonPortsMap(commonPorts)
 )
 
 
@@ -504,7 +521,7 @@ func main() {
     if !order {
         defaultPorts = Shuffle(defaultPorts)
     }
-    commonPortsIntersect := Intersect(commonPorts, defaultPorts)
+    commonPortsIntersect := AdjustPortsList(defaultPorts)
     defaultPorts = append(commonPortsIntersect, defaultPorts...)
     defaultPorts = RemoveRepeatedElement(defaultPorts)
     defaultPortsLen = len(defaultPorts)
