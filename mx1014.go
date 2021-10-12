@@ -328,7 +328,14 @@ func portScan(targets []Target, dports []string) int {
                             if aliveMode {
                                 log.Print(host)
                             } else {
-                                log.Print(targetAddr)
+                                port := strings.Split(targetAddr, ":")[1]
+                                portNum, _ := strconv.Atoi(port)
+                                names := portGroupMap[portNum]
+                                if names == nil {
+                                    log.Print(targetAddr)
+                                } else {
+                                    log.Printf("%s\t(%s)", targetAddr, strings.Join(names, ","))
+                                }
                             }
                         case 1: //closed
                             targetFilterCount[host] = 65536
@@ -553,7 +560,8 @@ var (
       "vmware": []int{ 9875 },
       "x11": []int{ 6000 },
     }
-    rawCommonPorts    = "22,80,81,82,83,84,85,86,88,89,90,99,135,137,138,139,389,443,445,800,801,808,880,888,889,1000,1010,1024,1080,1433,1521,1980,3000,3128,3308,3389,3505,4430,4433,4560,5432,5555,5800,5900,5985,5986,6080,6379,6588,6677,6868,7000,7001,7002,7003,7005,7007,7070,7080,7200,7777,7890,8000,8001,8002,8003,8004,8006,8008,8009,8010,8011,8012,8016,8020,8053,8060,8070,8080,8081,8082,8083,8084,8085,8086,8087,8088,8089,8090,8091,8099,8100,8161,8180,8181,8182,8200,8280,8300,8360,8443,8484,8800,8880,8881,8888,8899,8989,9000,9001,9002,9043,9060,9080,9081,9085,9090,9091,9200,9875,9999,10000,18080,28017,38501,38888,41516"
+    portGroupMap = make(map[int][]string)
+    rawCommonPorts    = "in"
     commonPorts       = ParsePortRange(rawCommonPorts)
     commonPortsMap    = GetObjectMap(commonPorts)
 )
@@ -595,9 +603,9 @@ Options:
 
 
 func init() {
-    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is common ports)")
+    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is \"in\" port group)")
     flag.StringVar(&addPort,     "ap", "",            "Ports  Append default ports")
-    flag.IntVar(&numOfgoroutine, "t", 256,            " Int    The Number of Goroutine (Default is 256)")
+    flag.IntVar(&numOfgoroutine, "t", 512,            " Int    The Number of Goroutine (Default is 512)")
     flag.IntVar(&timeout,        "T", 1514,           " Int    TCP Connect Timeout (Default is 1514ms)")
     flag.StringVar(&infile,      "i", "",             " File   Target input from list")
     flag.StringVar(&outfile,     "o", "",             " File   Output file path")
@@ -611,33 +619,44 @@ func init() {
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
-    flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports")
+    flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports (see -p)")
     flag.Usage = usage
 }
 
 
 func main() {
+
+    for name, ports := range portGroup {
+        for _, port := range ports {
+            if portGroupMap[port] == nil {
+                portGroupMap[port] = []string{}
+            }
+            portGroupMap[port] = append(portGroupMap[port], name)
+        }
+    }
+
     total = 0
     openCount = 0
     startTime = time.Now()
     flag.Parse()
 
-    if showPorts {
-        fmt.Printf("Count: %d\n", len(commonPorts))
-        fmt.Println(rawCommonPorts)
-        os.Exit(0)
-    }
-
     if addPort != "" {
         portRanges += ( "," + addPort )
     }
     defaultPorts := ParsePortRange(portRanges)
+    defaultPortsLen = len(defaultPorts)
+
+    if showPorts {
+        fmt.Printf("Count: %d\n", defaultPortsLen)
+        fmt.Println(strings.Join(defaultPorts, ","))
+        os.Exit(0)
+    }
+
     if !order {
         defaultPorts = Shuffle(defaultPorts)
     }
 
     defaultPorts = AdjustPortsList(defaultPorts)
-    defaultPortsLen = len(defaultPorts)
 
     var rawTargets []string
     var allTargets []Target
