@@ -146,11 +146,32 @@ func IPWildcard(target string) ([]string, error) {
 }
 
 
-func IsIP(str string) (bool){
+func IsIP(str string) (bool) {
     return strings.Count(str, ".") == 3 &&
            !strings.ContainsAny(strings.ToUpper(str), "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 }
 
+func AddFuzzPort(ports []string) ([]string) {
+    var fuzzPorts []string
+    for _, port := range(ports) {
+        if len(port) == 2 {
+            fuzzPorts = append(fuzzPorts, port + port)
+        } else if len(port) == 4 {
+            portNum, _ := strconv.Atoi(port)
+            for i := 1; i <= 6; i++ {
+                fuzzPortNum := portNum + i * 10000
+                if fuzzPortNum > 65535 { break }
+                fuzzPorts = append(fuzzPorts, strconv.Itoa(fuzzPortNum))
+            }
+            for i := 0; i <= 9; i++ {
+                fuzzPortNum := portNum * 10 + i
+                if fuzzPortNum > 65535 { break }
+                fuzzPorts = append(fuzzPorts, strconv.Itoa(fuzzPortNum))
+            }
+        }
+    }
+    return fuzzPorts
+}
 
 func ParsePortRange(portList string) ([]string) {
     var ports []string
@@ -185,6 +206,9 @@ func ParsePortRange(portList string) ([]string) {
             }
             ports = append(ports, strconv.Itoa(singlePort))
         }
+    }
+    if fuzzPort {
+        ports = AddFuzzPort(ports)
     }
     return ports
 }
@@ -426,6 +450,7 @@ var (
     closedMode      bool
     showPorts       bool
     aliveMode       bool
+    fuzzPort        bool
     senddata        string
     total           int
     openCount       int
@@ -592,7 +617,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "sp"}
+    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "f", "sp"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -616,6 +641,7 @@ func init() {
     flag.IntVar(&autoDiscard,    "a", 1014,           " Int    Too many filtered, Discard the host (Default is 1014)")
     flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
     flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
+    flag.BoolVar(&fuzzPort,      "f", false,          "        Fuzz Port")
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
@@ -644,19 +670,19 @@ func main() {
         portRanges += ( "," + addPort )
     }
     defaultPorts := ParsePortRange(portRanges)
-    defaultPortsLen = len(defaultPorts)
-
-    if showPorts {
-        fmt.Printf("Count: %d\n", defaultPortsLen)
-        fmt.Println(strings.Join(defaultPorts, ","))
-        os.Exit(0)
-    }
 
     if !order {
         defaultPorts = Shuffle(defaultPorts)
     }
 
     defaultPorts = AdjustPortsList(defaultPorts)
+
+    defaultPortsLen = len(defaultPorts)
+    if showPorts {
+        fmt.Printf("Count: %d\n", defaultPortsLen)
+        fmt.Println(strings.Join(defaultPorts, ","))
+        os.Exit(0)
+    }
 
     var rawTargets []string
     var allTargets []Target
