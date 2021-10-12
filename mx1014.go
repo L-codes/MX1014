@@ -414,6 +414,7 @@ func portScan(targets []Target, dports []string) int {
     return 0
 }
 
+
 func GetObjectMap(portsList []string) map[string]bool {
     portsMap := make(map[string]bool)
     for _, i := range portsList {
@@ -421,6 +422,7 @@ func GetObjectMap(portsList []string) map[string]bool {
     }
     return portsMap
 }
+
 
 func AdjustPortsList(portsList []string) []string {
     var resList []string
@@ -433,6 +435,25 @@ func AdjustPortsList(portsList []string) []string {
     resList = RemoveRepeatedElement(resList)
     return resList
 }
+
+
+func FileReadlines(readfile string) []string {
+    var lines []string
+    file, err := os.Open(readfile)
+    if err != nil {
+        ErrPrint(fmt.Sprintf("File read failed: %s", readfile))
+    }
+    defer file.Close()
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := strings.Trim(scanner.Text(), " \t\f\v")
+        if line != "" {
+            lines = append(lines, line)
+        }
+    }
+    return lines
+}
+
 
 var (
     portRanges      string
@@ -685,24 +706,13 @@ func main() {
     }
 
     var rawTargets []string
-    var allTargets []Target
     if infile == "" {
         rawTargets = flag.Args()
     } else {
-        file, err := os.Open(infile)
-        if err != nil {
-            ErrPrint(fmt.Sprintf("File read failed: %s", infile))
-        }
-        defer file.Close()
-        scanner := bufio.NewScanner(file)
-        for scanner.Scan() {
-            line := strings.Trim(scanner.Text(), " \t\f\v")
-            if line != "" {
-                rawTargets = append(rawTargets, line)
-            }
-        }
+        rawTargets = FileReadlines(infile)
     }
 
+    var allTargets []Target
     for _, rawTarget := range rawTargets {
         targets, err := ParseTarget(rawTarget)
         if err != nil {
@@ -714,7 +724,7 @@ func main() {
     }
 
     if !order {
-        allTargets   = ShuffleTarget(allTargets)
+        allTargets = ShuffleTarget(allTargets)
     }
 
     log.SetFlags(0)
