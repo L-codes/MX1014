@@ -617,7 +617,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "f", "sp"}
+    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sp"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -641,7 +641,7 @@ func init() {
     flag.IntVar(&autoDiscard,    "a", 1014,           " Int    Too many filtered, Discard the host (Default is 1014)")
     flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
     flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
-    flag.BoolVar(&fuzzPort,      "f", false,          "        Fuzz Port")
+    flag.BoolVar(&fuzzPort,      "fuzz", false,       "     Fuzz Port")
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
@@ -754,4 +754,5 @@ func main() {
     aliveRate := hostAlive * 100.0 / allTargetsSize
     endTime := time.Now().Format("2006/01/02 15:04:05")
     log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, secondToTime(int(spendTime)))
+
 }
