@@ -594,7 +594,7 @@ var (
 
 func usage() {
     fmt.Fprintf(
-        os.Stderr, `
+        os.Stdout, `
                           ...                                     .
                         .111111111111111.........................1111
       ......111..    .10011111011111110000000000000000111111111100000
@@ -717,10 +717,6 @@ func main() {
         allTargets   = ShuffleTarget(allTargets)
     }
 
-    if len(allTargets) == 0 {
-        flag.Usage()
-    }
-
     log.SetFlags(0)
     if outfile != "" {
         logFile, err := os.OpenFile(outfile, os.O_RDWR | os.O_CREATE | os.O_APPEND, os.ModeAppend | os.ModePerm)
@@ -731,6 +727,13 @@ func main() {
         defer logFile.Close()
         out := io.MultiWriter(os.Stdout, logFile)
         log.SetOutput(out)
+    } else {
+        out := io.MultiWriter(os.Stdout)
+        log.SetOutput(out)
+    }
+
+    if len(allTargets) == 0 {
+        flag.Usage()
     }
 
     allTargetsSize := len(allTargets)
