@@ -258,7 +258,7 @@ func ParseTarget(target string) ([]Target, error) {
 }
 
 
-// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, unkown: -1
+// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, unkown: -1
 func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
@@ -273,6 +273,8 @@ func TcpConnect(targetAddr string) int {
             return 4
         } else if strings.Contains(errMsg, "host is down") {
             return 5
+        } else if strings.Contains(errMsg, "no such host") {
+            return 6
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
@@ -383,6 +385,8 @@ func portScan(targets []Target, dports []string) int {
                         case 4: //denied
                             targetFilterCount[host] = autoDiscard
                         case 5: //down
+                            targetFilterCount[host] = autoDiscard
+                        case 6: //error_host
                             targetFilterCount[host] = autoDiscard
                         case -1: //unkown
                         }
@@ -695,7 +699,7 @@ func main() {
 
     defaultPortsLen = len(defaultPorts)
     if showPorts {
-        fmt.Printf("Count: %d\n", defaultPortsLen)
+        fmt.Printf("# Count: %d\n", defaultPortsLen)
         fmt.Println(strings.Join(defaultPorts, ","))
         os.Exit(0)
     }
