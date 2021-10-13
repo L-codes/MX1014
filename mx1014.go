@@ -457,7 +457,6 @@ func FileReadlines(readfile string) []string {
 
 var (
     portRanges      string
-    addPort         string
     numOfgoroutine  int
     outfile         string
     infile          string
@@ -633,12 +632,12 @@ Target Example:
     192.168.1.*
     192.168.1-12.1
     192.168.*.1:22,80-90,8080
-    github.com:22,443,8443
+    github.com:22,443,rce
 
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "ap", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sp"}
+    optsOrder := []string{"p", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sp"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -650,7 +649,6 @@ Options:
 
 func init() {
     flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is \"in\" port group)")
-    flag.StringVar(&addPort,     "ap", "",            "Ports  Append default ports")
     flag.IntVar(&numOfgoroutine, "t", 512,            " Int    The Number of Goroutine (Default is 512)")
     flag.IntVar(&timeout,        "T", 1514,           " Int    TCP Connect Timeout (Default is 1514ms)")
     flag.StringVar(&infile,      "i", "",             " File   Target input from list")
@@ -687,9 +685,6 @@ func main() {
     startTime = time.Now()
     flag.Parse()
 
-    if addPort != "" {
-        portRanges += ( "," + addPort )
-    }
     defaultPorts := ParsePortRange(portRanges)
 
     if !order {
