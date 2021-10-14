@@ -6,7 +6,6 @@ import (
     "fmt"
     "io"
     "log"
-    "math/rand"
     "net"
     "os"
     "strconv"
@@ -16,16 +15,11 @@ import (
 )
 
 
-type Target struct {
-   host string
-   ports []string
-}
-
-
 func ErrPrint(msg string) {
     log.Printf("[!] %s\n", msg)
     os.Exit(1)
 }
+
 
 func secondToTime(second int) string {
     minute := second / 60
@@ -34,41 +28,6 @@ func secondToTime(second int) string {
     }else{
         return fmt.Sprintf("%dm%ds", minute, second % 60)
     }
-}
-
-func Shuffle(vals []string) []string {
-  r := rand.New(rand.NewSource(time.Now().Unix()))
-  ret := make([]string, len(vals))
-  perm := r.Perm(len(vals))
-  for i, randIndex := range perm {
-    ret[i] = vals[randIndex]
-  }
-  return ret
-}
-
-
-func ShuffleTarget(vals []Target) []Target {
-  r := rand.New(rand.NewSource(time.Now().Unix()))
-  ret := make([]Target, len(vals))
-  perm := r.Perm(len(vals))
-  for i, randIndex := range perm {
-    ret[i] = vals[randIndex]
-  }
-  return ret
-}
-
-
-func RemoveRepeatedElement(arr []string) []string {
-    var newArr []string
-    set := make(map[string]bool)
-    for _, element := range arr {
-        repeat := set[element]
-        if !repeat {
-            newArr = append(newArr, element)
-            set[element] = true
-        }
-    }
-    return newArr
 }
 
 
@@ -224,8 +183,7 @@ func ParsePortRange(portList string) ([]string) {
 }
 
 
-func ParseTarget(target string) ([]Target, error) {
-    var targets []Target
+func ParseTarget(target string, defaultPorts []string) (error) {
     var ports []string
     var portsLen int
 
@@ -233,41 +191,43 @@ func ParseTarget(target string) ([]Target, error) {
         items := strings.Split(target, ":")
         target = items[0]
         ports = ParsePortRange(items[1])
-        if !order {
-            ports = Shuffle(ports)
-        }
         ports = AdjustPortsList(ports)
         portsLen = len(ports)
     } else {
+        ports = defaultPorts
         portsLen = defaultPortsLen
     }
+
     if strings.ContainsAny(target, "/") {
         hosts, err := IPCIDR(target)
         if err != nil {
-            return nil, err
+            return err
         }
-        for _, host := range(hosts) {
-            targets = append(targets, Target{host: host, ports: ports})
-        }
+        hostMap[target] = hosts
     } else if IsIP(target) && strings.ContainsAny(target, "*-") {
         hosts, err := IPWildcard(target)
         if err != nil {
-            return nil, err
+            return err
         }
-        for _, host := range(hosts) {
-            targets = append(targets, Target{host: host, ports: ports})
-        }
+        hostMap[target] = hosts
     } else {
         if _, err := net.LookupHost(target); err != nil {
             if target[0] == 0x2d {  // "-"
                 log.Println("[*] Usage: ./mx1014 [Options] [Target1] [Target2]...")
             }
-            return nil, err
+            return err
         }
-        targets = append(targets, Target{host: target, ports: ports})
+        hostMap[target] = []string{ target }
     }
-    total += portsLen * len(targets)
-    return targets, nil
+
+    for _, port := range ports {
+        portMap[port] = append(portMap[port], target)
+    }
+
+    hostTotal += len(hostMap[target])
+    total += portsLen * hostTotal
+
+    return nil
 }
 
 
@@ -320,7 +280,7 @@ func UdpConnect(targetAddr string) bool {
 }
 
 
-func portScan(targets []Target, dports []string) int {
+func portScan() {
     wg := sync.WaitGroup{}
     targetsChan := make(chan string, timeout)
 
@@ -412,21 +372,16 @@ func portScan(targets []Target, dports []string) int {
         }()
     }
 
-    for _, target := range targets {
-        host  := target.host
-        ports := target.ports
-        if len(ports) == 0 {
-            ports = dports
-        }
-        for _, port := range ports {
-            tcpTarget := host + ":" + port
-            targetsChan <- tcpTarget
-            wg.Add(1)
+    for port, rawTargets := range portMap {
+        for _, rawTarget := range rawTargets {
+            for _, host := range hostMap[rawTarget] {
+                targetAddr := host + ":" + port
+                targetsChan <- targetAddr
+                wg.Add(1)
+            }
         }
     }
-
     wg.Wait()
-    return 0
 }
 
 
@@ -436,6 +391,20 @@ func GetObjectMap(portsList []string) map[string]bool {
         portsMap[i] = true
     }
     return portsMap
+}
+
+
+func RemoveRepeatedElement(arr []string) []string {
+    var newArr []string
+    set := make(map[string]bool)
+    for _, element := range arr {
+        repeat := set[element]
+        if !repeat {
+            newArr = append(newArr, element)
+            set[element] = true
+        }
+    }
+    return newArr
 }
 
 
@@ -477,7 +446,6 @@ var (
     infile          string
     timeout         int
     autoDiscard     int
-    order           bool
     verbose         bool
     udpmode         bool
     forceScan       bool
@@ -495,6 +463,9 @@ var (
     mutex           sync.Mutex
     startTime       time.Time
 
+    hostTotal       int
+    portMap           = make(map[string][]string) // port: rawtargets
+    hostMap           = make(map[string][]string) // rawtarget: hosts
     targetFilterCount = make(map[string]int)
     portGroup = map[string][]int {
       "in": []int{ 21,22,23,25,80,81,82,83,84,85,86,87,88,89,90,109,110,111,115,135,137,138,139,143,161,210,264,389,443,444,445,465,502,512,513,514,515,554,587,593,623,636,800,801,873,880,888,993,995,1000,1001,1024,1026,1028,1080,1090,1098,1099,1100,1101,1111,1158,1352,1433,1434,1521,2000,2001,2049,2100,2121,2181,2222,2375,2376,2377,2525,2888,3000,3001,3128,3260,3268,3269,3299,3306,3307,3308,3339,3389,3632,3690,3888,4369,4430,4433,4443,4444,4445,4446,4447,4786,4848,4990,5000,5001,5003,5005,5432,5555,5556,5601,5632,5672,5800,5858,5900,5901,5985,5986,6000,6001,6002,6003,6080,6379,6443,6588,6666,6868,7000,7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7070,7071,7080,7088,7443,7777,7788,8000,8001,8002,8003,8004,8005,8006,8007,8008,8009,8010,8011,8012,8013,8014,8015,8016,8017,8018,8019,8020,8021,8022,8023,8024,8025,8026,8027,8028,8029,8030,8040,8041,8042,8060,8066,8069,8070,8080,8081,8082,8083,8084,8085,8086,8087,8088,8089,8090,8091,8092,8093,8094,8095,8096,8097,8098,8099,8100,8101,8102,8103,8104,8105,8106,8107,8108,8109,8110,8111,8161,8180,8181,8182,8200,8282,8363,8383,8443,8453,8480,8485,8500,8554,8761,8787,8800,8848,8866,8873,8880,8881,8882,8883,8884,8885,8886,8887,8888,8889,8890,8899,8900,8983,8989,8999,9000,9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9043,9080,9081,9082,9083,9090,9092,9200,9229,9300,9443,9875,9876,9999,10000,10001,10080,10443,10800,10909,10911,10912,10999,11099,11211,12580,15672,18080,19001,19888,27017,28017,41414,45000,45001,45566,47001,50010,50020,50070,50075,50090,50470,50475,55555,63790 },
@@ -652,7 +623,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "i", "t", "T", "o", "r", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sp"}
+    optsOrder := []string{"p", "i", "t", "T", "o", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sp"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -668,11 +639,10 @@ func init() {
     flag.IntVar(&timeout,        "T", 1514,           " Int    TCP Connect Timeout (Default is 1514ms)")
     flag.StringVar(&infile,      "i", "",             " File   Target input from list")
     flag.StringVar(&outfile,     "o", "",             " File   Output file path")
-    flag.BoolVar(&order,         "r", false,          "        Scan in import order")
     flag.BoolVar(&udpmode,       "u", false,          "        UDP spray")
     flag.BoolVar(&echoMode,      "e", false,          "        Echo mode (TCP needs to be manually)")
     flag.BoolVar(&closedMode,    "c", false,          "        Allow display of closed ports (Only TCP)")
-    flag.IntVar(&autoDiscard,    "a", 1014,           " Int    Too many filtered, Discard the host (Default is 1014)")
+    flag.IntVar(&autoDiscard,    "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
     flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
     flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
     flag.BoolVar(&fuzzPort,      "fuzz", false,       "     Fuzz Port")
@@ -696,6 +666,7 @@ func main() {
     }
 
     total = 0
+    hostTotal = 0
     openCount = 0
     startTime = time.Now()
     flag.Parse()
@@ -717,10 +688,6 @@ func main() {
 
     defaultPorts := ParsePortRange(portRanges)
 
-    if !order {
-        defaultPorts = Shuffle(defaultPorts)
-    }
-
     defaultPorts = AdjustPortsList(defaultPorts)
 
     defaultPortsLen = len(defaultPorts)
@@ -737,26 +704,17 @@ func main() {
         rawTargets = FileReadlines(infile)
     }
 
-    var allTargets []Target
     for _, rawTarget := range rawTargets {
-        targets, err := ParseTarget(rawTarget)
+        err := ParseTarget(rawTarget, defaultPorts)
         if err != nil {
             ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
         }
-        for _, target := range targets {
-            allTargets = append(allTargets, target)
-        }
     }
 
-    if !order {
-        allTargets = ShuffleTarget(allTargets)
-    }
-
-    if len(allTargets) == 0 {
+    if hostTotal == 0 {
         flag.Usage()
     }
 
-    allTargetsSize := len(allTargets)
     EchoModePrompt := ""
     if echoMode && !udpmode {
         EchoModePrompt = " (TCP Echo)"
@@ -764,8 +722,8 @@ func main() {
     if udpmode {
         EchoModePrompt = " (UDP Spray)"
     }
-    log.Printf("# %s Start scanning %d hosts...%s (reqs: %d)\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt, total)
-    portScan(allTargets, defaultPorts)
+    log.Printf("# %s Start scanning %d hosts...%s (reqs: %d)\n\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, EchoModePrompt, total)
+    portScan()
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
     hostAlive := 0
@@ -774,8 +732,8 @@ func main() {
             hostAlive++
         }
     }
-    aliveRate := hostAlive * 100.0 / allTargetsSize
+    aliveRate := hostAlive * 100.0 / hostTotal
     endTime := time.Now().Format("2006/01/02 15:04:05")
-    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, allTargetsSize, openCount, pps, secondToTime(int(spendTime)))
+    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, hostTotal, openCount, pps, secondToTime(int(spendTime)))
 
 }
