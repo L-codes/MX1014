@@ -660,7 +660,7 @@ func init() {
     flag.BoolVar(&echoMode,      "e", false,          "        Echo mode (TCP needs to be manually)")
     flag.BoolVar(&closedMode,    "c", false,          "        Allow display of closed ports (Only TCP)")
     flag.IntVar(&autoDiscard,    "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
-    flag.BoolVar(&forceScan,     "A", false,          "        Disable auto disable")
+    flag.BoolVar(&forceScan,     "A", false,          "        Disable auto discard")
     flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
     flag.BoolVar(&fuzzPort,      "fuzz", false,       "     Fuzz Port")
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
