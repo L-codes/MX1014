@@ -292,7 +292,7 @@ func portScan() {
             pps := float64(doneCount) / second
             remaining := second * 100 / float64(rate) - second
             remainingTime := secondToTime(int(remaining))
-            log.Printf("# Progress (%d/%d) open: %d, pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, total, openCount, pps, rate, remainingTime)
+            log.Printf("# Progress (%d/%d) alive: %d, discard: %d, open: %d, pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, total, hostAlive, hostDiscard, openCount, pps, rate, remainingTime)
         }
     }()
 
@@ -320,7 +320,10 @@ func portScan() {
                         mutex.Lock()
                         switch flag {
                         case 0: //open
-                            targetFilterCount[host] = 65536
+                            if targetFilterCount[host] < 65536 { // First found alive
+                                hostAlive++
+                                targetFilterCount[host] = 65536
+                            }
                             openCount++
                             if aliveMode {
                                 log.Print(host)
@@ -335,7 +338,10 @@ func portScan() {
                                 }
                             }
                         case 1: //closed
-                            targetFilterCount[host] = 65536
+                            if targetFilterCount[host] < 65536 { // First found alive
+                                hostAlive++
+                                targetFilterCount[host] = 65536
+                            }
                             if aliveMode {
                                 log.Print(host)
                             } else if verbose || closedMode {
@@ -344,21 +350,24 @@ func portScan() {
                         case 2: //filtered
                             if filterCount < 65536 {
                                 targetFilterCount[host]++
+                                if targetFilterCount[host] == autoDiscard { // Just met max
+                                    hostDiscard++
+                                }
                             }
                             if verbose {
                                 fmt.Printf("# filtered: %s\n", targetAddr)
                             }
                         case 3: //noroute
-                            targetFilterCount[host] = autoDiscard
+                            targetFilterCount[host] = autoDiscard + 1
                             if verbose {
                                 log.Printf("# %s no route to host, discard the host\n", host)
                             }
                         case 4: //denied
-                            targetFilterCount[host] = autoDiscard
+                            targetFilterCount[host] = autoDiscard + 1
                         case 5: //down
-                            targetFilterCount[host] = autoDiscard
+                            targetFilterCount[host] = autoDiscard + 1
                         case 6: //error_host
-                            targetFilterCount[host] = autoDiscard
+                            targetFilterCount[host] = autoDiscard + 1
                         case -1: //unkown
                         }
                         mutex.Unlock()
@@ -456,6 +465,8 @@ var (
     fuzzPort        bool
     senddata        string
     total           int
+    hostAlive       int
+    hostDiscard      int
     openCount       int
     doneCount       int
     defaultPortsLen int
@@ -636,7 +647,7 @@ Options:
 func init() {
     flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is \"in\" port group)")
     flag.IntVar(&numOfgoroutine, "t", 512,            " Int    The Number of Goroutine (Default is 512)")
-    flag.IntVar(&timeout,        "T", 1514,           " Int    TCP Connect Timeout (Default is 1514ms)")
+    flag.IntVar(&timeout,        "T", 1980,           " Int    TCP Connect Timeout (Default is 1980ms)")
     flag.StringVar(&infile,      "i", "",             " File   Target input from list")
     flag.StringVar(&outfile,     "o", "",             " File   Output file path")
     flag.BoolVar(&udpmode,       "u", false,          "        UDP spray")
@@ -666,6 +677,8 @@ func main() {
     }
 
     total = 0
+    hostAlive = 0
+    hostDiscard = 0
     hostTotal = 0
     openCount = 0
     startTime = time.Now()
@@ -726,14 +739,8 @@ func main() {
     portScan()
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
-    hostAlive := 0
-    for _, i := range targetFilterCount {
-        if i >= 65536 {
-            hostAlive++
-        }
-    }
     aliveRate := hostAlive * 100.0 / hostTotal
     endTime := time.Now().Format("2006/01/02 15:04:05")
-    log.Printf("\n# %s Finished %d tasks. alive: %d%% (%d/%d), open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, hostTotal, openCount, pps, secondToTime(int(spendTime)))
+    log.Printf("\n# %s Finished %d tasks.\n# alive: %d%% (%d/%d), discard: %d, open: %d, pps: %.0f, time: %s\n", endTime, total, aliveRate, hostAlive, hostTotal, hostDiscard, openCount, pps, secondToTime(int(spendTime)))
 
 }
