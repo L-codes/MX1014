@@ -25,11 +25,11 @@ func secondToTime(second int) string {
     day := second / 86400
     hour := ( second % 86400 ) / 3600
     minute := ( second % 3600 ) / 60
-    if day == 0 {
+    if day != 0 {
         return fmt.Sprintf("%dd%dh%dm%ds", day, hour, minute, second % 60)
-    } else if hour == 0 {
+    } else if hour != 0 {
         return fmt.Sprintf("%dh%dm%ds", hour, minute, second % 60)
-    } else if minute == 0 {
+    } else if minute != 0 {
         return fmt.Sprintf("%dm%ds", minute, second % 60)
     }else{
         return fmt.Sprintf("%ds", second)
