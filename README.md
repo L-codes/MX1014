@@ -7,13 +7,14 @@
 
 ## Version
 
-1.2.0 - [版本修改日志](CHANGELOG.md)
+2.0.0 - [版本修改日志](CHANGELOG.md)
 
 
 
 ## Features
 
 * 兼容 nmap 的端口和目标语法
+* 存在端口分组的概念，方便指定特定端口组 (端口别名，参考下面的 "Port Group")
 * 支持各组目标扫描不同的端口
 * 支持端口组进行针对性的扫描
 * 采用逐主机的深度搜索机制，降低 “踩雷” 的速度
@@ -24,6 +25,7 @@
 * linux 支持 CentOS5 (Linux 2.6.18) 等 (即兼容 Golang 1.10.8)
 * 支持 TCP/UDP 的 Echo 回显数据发送 (UDP 不会返回端口状态)
 * 支持 TCP closed 状态显示
+* 支持端口模糊测试
 
 
 
@@ -37,7 +39,7 @@ $ ./mx1014
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.2.0
+  .001              1001               Version 2.0.0
   .1.              ...1.
 
 
@@ -48,13 +50,12 @@ Target Example:
     192.168.1.*
     192.168.1-12.1
     192.168.*.1:22,80-90,8080
-    github.com:22,443,8443
+    github.com:22,443,rce
 
 Options:
-    -p  Ports  Default port ranges. (Default is common ports)
-    -ap Ports  Append default ports
+    -p  Ports  Default port ranges. (Default is "in" port group)
     -i  File   Target input from list
-    -t  Int    The Number of Goroutine (Default is 256)
+    -t  Int    The Number of Goroutine (Default is 512)
     -T  Int    TCP Connect Timeout (Default is 1514ms)
     -o  File   Output file path
     -r         Scan in import order
@@ -63,43 +64,45 @@ Options:
     -c         Allow display of closed ports (Only TCP)
     -d  Str    Specify Echo mode data (Default is "%port%\n")
     -D  Int    Progress Bar Refresh Delay (Default is 5s)
+    -l         Output alive host
     -a  Int    Too many filtered, Discard the host (Default is 1014)
     -A         Disable auto disable
     -v         Verbose mode
-    -sp        Only show default ports
+    -fuzz      Fuzz Port
+    -sp        Only show default ports (see -p)
 ```
 
-2. 简单扫描数十个常用默认端口
+2. 简单扫描三百多个内网常见端口
 ```ruby
 $ ./mx1014 192.168.1.134
-# 2021/04/09 12:15:49 Start scanning 1 hosts...
+# 2021/10/16 15:30:13 Start scanning 1 hosts... (reqs: 311)
 
-192.168.1.134:80
-192.168.1.134:8009
-192.168.1.134:22
-192.168.1.134:8080
+192.168.1.134:22       (in,mac,brute,info,ssh,win,linux)
+192.168.1.134:8080     (in,web1,jdwp,rce,jboss,web2)
+192.168.1.134:8009     (in,ajp,rce,web2)
 
-# 2021/04/09 12:15:50 Finished 49 tasks. alive: 100% (1/1), open: 4, pps: 49, time: 1s
+# 2021/10/16 15:30:14 Finished 311 tasks. alive: 100% (1/1), open: 3, pps: 305, time: 1s
 ```
 
 3. 扫描各组不同 IP 的不同端口
 ```ruby
-$ ./mx1014 192.168.1.0/24:22 192.168.1.133:80-90,443
-# 2021/04/09 12:20:57 Start scanning 257 hosts...
+$ ./mx1014 192.168.1.133/24:ssh 192.168.1.133:80-90,443,mysql
+# 2021/10/16 15:47:00 Start scanning 257 hosts... (reqs: 527)
 
-192.168.1.133:83
-192.168.1.133:84
-192.168.1.133:81
-192.168.1.133:22
-192.168.1.133:443
-192.168.1.134:22
-192.168.1.133:80
-192.168.1.133:87
-192.168.1.133:82
-192.168.1.133:88
-192.168.1.130:22
+192.168.1.134:22       (win,linux,mac,brute,ssh,info,in)
+192.168.1.133:22       (win,linux,mac,brute,ssh,info,in)
+192.168.1.133:3307     (database1,mysql,brute,database2,in)
+192.168.1.133:82       (web2,in)
+192.168.1.133:3306     (database1,mysql,brute,database2,in)
+192.168.1.133:80       (iis,web2,web1,jboss,in)
+192.168.1.133:81       (web2,in)
+192.168.1.133:83       (web2,in)
+192.168.1.133:84       (web2,in)
+192.168.1.133:87       (web2,in)
+192.168.1.133:88       (win,web2,brute,kerberos,in)
+192.168.1.133:443      (iis,web2,web1,in)
 
-# 2021/04/09 12:20:58 Finished 268 tasks. alive: 1% (4/257), open: 11, pps: 263, time: 1s
+# 2021/10/16 15:47:02 Finished 527 tasks. alive: 1% (3/257), open: 12, pps: 345, time: 1s
 ```
 
 
@@ -107,31 +110,27 @@ $ ./mx1014 192.168.1.0/24:22 192.168.1.133:80-90,443
 1. 根据网络环境，调整扫描并发数(-t)、超时(-T)和进度打印间隔(-D), 提速或提高准确度
 ```ruby
 $ ./mx1014 -t 1000 -T 500 -D 10 -p 1-65535 192.168.1.134
-# 2021/04/07 19:31:40 Start scanning 1 hosts...
+# 2021/10/16 15:49:16 Start scanning 1 hosts... (reqs: 65535)
 
-192.168.1.134:3306
-192.168.1.134:80
-# Progress (19021/65535) open: 2, pps: 1900, rate: 29%
-192.168.1.134:8009
-# Progress (39042/65535) open: 3, pps: 1951, rate: 59%
-192.168.1.134:22
-# Progress (58270/65535) open: 4, pps: 1941, rate: 88%
-192.168.1.134:8080
+192.168.1.134:8009     (rce,in,web2,ajp)
+192.168.1.134:22       (mac,ssh,brute,in,linux,win,info)
+192.168.1.134:8080     (jboss,jdwp,rce,in,web2,web1)
+# Progress (19022/65535) open: 3, pps: 1895, rate: 29% (RD 24s)
+# Progress (38701/65535) open: 3, pps: 1931, rate: 59% (RD 13s)
+# Progress (58673/65535) open: 3, pps: 1953, rate: 90% (RD 3s)
 
-# 2021/04/07 19:32:13 Finished 65535 tasks. alive: 100% (1/1), open: 5, pps: 1934, time: 33s
+# 2021/10/16 15:49:50 Finished 65535 tasks. alive: 100% (1/1), open: 3, pps: 1951, time: 33s
 ```
 
 2. TCP Echo 模式，如果端口开放，往端口写入当前的端口号
 ```ruby
 $ ./mx1014 -e 192.168.1.134:80,8000-8080 # 可用 -d 参数指定 echo 的内容
-# 2021/04/07 19:37:43 Start scanning 1 hosts... (TCP Echo)
+# 2021/10/16 15:52:58 Start scanning 1 hosts... (TCP Echo) (reqs: 82)
 
-192.168.1.134:8009
-192.168.1.134:8011
-192.168.1.134:8080
-192.168.1.134:80
+192.168.1.134:8080     (web2,jboss,jdwp,rce,in,web1)
+192.168.1.134:8009     (web2,rce,in,ajp)
 
-# 2021/04/07 19:37:44 Finished 82 tasks. alive: 100% (1/1), open: 4, pps: 81, time: 1s
+# 2021/10/16 15:52:59 Finished 82 tasks. alive: 100% (1/1), open: 2, pps: 81, time: 1s
 ```
 
 3. 从文件中读取目标并进行 UDP 扫描 (默认会 echo 端口号)
@@ -141,33 +140,18 @@ heredoc> 192.168.1.134:80
 heredoc> 192.168.1.130:22
 EOF
 $ ./mx1014 -u -i ip.txt
-# 2021/04/07 19:50:39 Start scanning 2 hosts...
+# 2021/10/16 15:57:47 Start scanning 2 hosts... (UDP Spray) (reqs: 2)
 
 
-# 2021/04/07 19:50:39 Finished 2 tasks. alive: 0% (0/2), open: 0, pps: 1306, time: 0s
+# 2021/10/16 15:57:47 Finished 2 tasks. alive: 0% (0/2), open: 0, pps: 1306, time: 0s
 ```
 
-4. 追加默认端口进行扫描
-```ruby
-$ ./mx1014 -ap 1000-2000 192.168.1.134
-# 2021/04/09 12:34:27 Start scanning 1 hosts...
-
-192.168.1.134:8009
-192.168.1.134:80
-192.168.1.134:8080
-192.168.1.134:22
-# Progress (1032/1050) open: 4, pps: 206, rate: 98%
-192.168.1.134:1111
-
-# 2021/04/09 12:34:32 Finished 1050 tasks. alive: 100% (1/1), open: 4, pps: 208, time: 5s
-```
-
-5. 禁用自动丢弃主机机制，强制扫描
+4. 禁用自动丢弃主机机制，强制扫描
 ```ruby
 $ ./mx1014 -A 192.168.1.134:1-65535
 ```
 
-6. 可显示 closed 状态的端口信息，作用自行脑补
+5. 可显示 closed 状态的端口信息，作用自行脑补
 ```ruby
 $ ./mx1014 -c 192.168.1.134:1-65535
 ```
@@ -175,6 +159,14 @@ $ ./mx1014 -c 192.168.1.134:1-65535
 6. 根据 TCP 探测存活主机
 ```ruby
 $ ./mx1014 -l -p 80 192.168.1.134
+```
+
+7. 根据 TCP 探测存活主机
+```ruby
+# 可根据端口生成相近可能的端口
+$ ./mx1014 -sp -p 80 -fuzz
+# Count: 4
+81,80,8080,79
 ```
 
 ## Port Group

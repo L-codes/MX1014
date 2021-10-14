@@ -154,22 +154,32 @@ func IsIP(str string) (bool) {
 func AddFuzzPort(ports []string) ([]string) {
     var fuzzPorts []string
     for _, port := range(ports) {
+        portNum, _ := strconv.Atoi(port)
         if len(port) == 2 {
             fuzzPorts = append(fuzzPorts, port + port)
         } else if len(port) == 4 {
-            portNum, _ := strconv.Atoi(port)
+            // left
             for i := 1; i <= 6; i++ {
                 fuzzPortNum := portNum + i * 10000
                 if fuzzPortNum > 65535 { break }
                 fuzzPorts = append(fuzzPorts, strconv.Itoa(fuzzPortNum))
             }
+            // right
             for i := 0; i <= 9; i++ {
                 fuzzPortNum := portNum * 10 + i
                 if fuzzPortNum > 65535 { break }
                 fuzzPorts = append(fuzzPorts, strconv.Itoa(fuzzPortNum))
             }
         }
+        // side
+        if portNum < 65535 {
+            fuzzPorts = append(fuzzPorts, strconv.Itoa(portNum + 1))
+        }
+        if portNum > 1 {
+            fuzzPorts = append(fuzzPorts, strconv.Itoa(portNum - 1))
+        }
     }
+    fuzzPorts = append(fuzzPorts, ports...)
     return fuzzPorts
 }
 
@@ -248,10 +258,13 @@ func ParseTarget(target string) ([]Target, error) {
             targets = append(targets, Target{host: host, ports: ports})
         }
     } else {
-        hosts := []string{ target }
-        for _, host := range(hosts) {
-            targets = append(targets, Target{host: host, ports: ports})
+        if _, err := net.LookupHost(target); err != nil {
+            if target[0] == 0x2d {  // "-"
+                log.Println("[*] Usage: ./mx1014 [Options] [Target1] [Target2]...")
+            }
+            return nil, err
         }
+        targets = append(targets, Target{host: target, ports: ports})
     }
     total += portsLen * len(targets)
     return targets, nil
@@ -310,7 +323,6 @@ func UdpConnect(targetAddr string) bool {
 func portScan(targets []Target, dports []string) int {
     wg := sync.WaitGroup{}
     targetsChan := make(chan string, timeout)
-    poolCount := numOfgoroutine
 
     go func() {
         for {
@@ -324,8 +336,7 @@ func portScan(targets []Target, dports []string) int {
         }
     }()
 
-
-    for i := 0; i <= poolCount; i++ {
+    for i := 0; i <= numOfgoroutine; i++ {
         go func() {
             for targetAddr := range targetsChan {
                 if udpmode {
@@ -360,7 +371,7 @@ func portScan(targets []Target, dports []string) int {
                                 if names == nil {
                                     log.Print(targetAddr)
                                 } else {
-                                    log.Printf("%s\t(%s)", targetAddr, strings.Join(names, ","))
+                                    log.Printf("%-22s(%s)", targetAddr, strings.Join(names, ","))
                                 }
                             }
                         case 1: //closed
@@ -625,7 +636,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 1.2.0
+  .001              1001               Version 2.0.0
   .1.              ...1.
 
 
@@ -689,6 +700,21 @@ func main() {
     startTime = time.Now()
     flag.Parse()
 
+    log.SetFlags(0)
+    if outfile != "" {
+        logFile, err := os.OpenFile(outfile, os.O_RDWR | os.O_CREATE | os.O_APPEND, os.ModeAppend | os.ModePerm)
+        if err != nil {
+            ErrPrint("Open output file failed")
+        }
+
+        defer logFile.Close()
+        out := io.MultiWriter(os.Stdout, logFile)
+        log.SetOutput(out)
+    } else {
+        out := io.MultiWriter(os.Stdout)
+        log.SetOutput(out)
+    }
+
     defaultPorts := ParsePortRange(portRanges)
 
     if !order {
@@ -726,21 +752,6 @@ func main() {
         allTargets = ShuffleTarget(allTargets)
     }
 
-    log.SetFlags(0)
-    if outfile != "" {
-        logFile, err := os.OpenFile(outfile, os.O_RDWR | os.O_CREATE | os.O_APPEND, os.ModeAppend | os.ModePerm)
-        if err != nil {
-            ErrPrint("Open output file failed")
-        }
-
-        defer logFile.Close()
-        out := io.MultiWriter(os.Stdout, logFile)
-        log.SetOutput(out)
-    } else {
-        out := io.MultiWriter(os.Stdout)
-        log.SetOutput(out)
-    }
-
     if len(allTargets) == 0 {
         flag.Usage()
     }
@@ -750,7 +761,10 @@ func main() {
     if echoMode && !udpmode {
         EchoModePrompt = " (TCP Echo)"
     }
-    log.Printf("# %s Start scanning %d hosts...%s\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt)
+    if udpmode {
+        EchoModePrompt = " (UDP Spray)"
+    }
+    log.Printf("# %s Start scanning %d hosts...%s (reqs: %d)\n\n", startTime.Format("2006/01/02 15:04:05"), allTargetsSize, EchoModePrompt, total)
     portScan(allTargets, defaultPorts)
     spendTime := time.Since(startTime).Seconds()
     pps := float64(total) / spendTime
