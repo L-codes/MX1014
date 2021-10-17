@@ -170,6 +170,9 @@ $ ./mx1014 -sp -p 80 -fuzz
 
 ## Port Group
 ```ruby
+# NOTE Reference:
+#   https://book.hacktricks.xyz/pentesting/
+#   https://github.com/0xtz/Enum_For_All
 {
   # pentest
   in: "rce,info,brute,web2",
@@ -310,6 +313,10 @@ $ ./mx1014 -sp -p 80 -fuzz
 ## TODO
 
  * 代码逻辑优化
+
+ * 实现 SYN ACK NULL 等 raw socket 扫描 (寻找好的实现方案中)
+
+ * 继续优化端口组列表，望大家共同维护
 
 
 ## License
