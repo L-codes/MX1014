@@ -230,8 +230,9 @@ func ParseTarget(target string, defaultPorts []string) (error) {
         portMap[port] = append(portMap[port], target)
     }
 
-    hostTotal += len(hostMap[target])
-    total += portsLen * hostTotal
+    hostCount := len(hostMap[target])
+    hostTotal += hostCount
+    total += portsLen * hostCount
 
     return nil
 }
