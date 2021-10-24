@@ -467,6 +467,7 @@ var (
     echoMode        bool
     closedMode      bool
     showPorts       bool
+    showHosts       bool
     aliveMode       bool
     fuzzPort        bool
     senddata        string
@@ -669,6 +670,7 @@ func init() {
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
+    flag.BoolVar(&showHosts,     "sh", false,         "       Show scan target")
     flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports (see -p)")
     flag.Usage = usage
 
@@ -725,6 +727,14 @@ func main() {
         if err != nil {
             ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
         }
+    }
+
+    if showHosts {
+        fmt.Printf("# Count: %d\n", hostTotal)
+        for _, hosts := range hostMap {
+            fmt.Println(strings.Join(hosts, "\n"))
+        }
+        os.Exit(0)
     }
 
     if hostTotal == 0 {
