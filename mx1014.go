@@ -56,6 +56,12 @@ func IPCIDR(cidr string) ([]string, error) {
     for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
         hosts = append(hosts, ip.String())
     }
+    size := len(hosts)
+
+    if size > 2 {
+        hosts =  hosts[1:size-1]
+    }
+
     return hosts, nil
 }
 
