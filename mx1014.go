@@ -255,6 +255,10 @@ func TcpConnect(targetAddr string) int {
             return 5
         } else if strings.Contains(errMsg, "no such host") {
             return 6
+        } else if strings.Contains(errMsg, "network is unreachable") {
+            return 6
+        } else if strings.Contains(errMsg, "The requested address is not valid in its context.") {
+            return 6
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
