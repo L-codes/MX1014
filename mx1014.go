@@ -476,6 +476,7 @@ var (
     showHosts         bool
     aliveMode         bool
     fuzzPort          bool
+    cNet              bool
     senddata          string
     doneCount         int
     progressDelay     int
@@ -677,6 +678,7 @@ func init() {
     flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/100/172/192/all)")
     flag.BoolVar(&aliveMode,       "l", false,          "        Output alive host")
     flag.BoolVar(&fuzzPort,        "fuzz", false,       "     Fuzz Port")
+    flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
     flag.StringVar(&senddata,      "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,    "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,         "v", false,          "        Verbose mode")
@@ -731,6 +733,20 @@ func main() {
 
     if infile != "" {
         rawTargets = append(rawTargets, FileReadlines(infile)...)
+    }
+
+    if cNet {
+        var newRawTargets []string
+        for _, rawTarget := range rawTargets {
+            cidr := rawTarget + "/24"
+            _, ipnet, err := net.ParseCIDR(cidr)
+            if err == nil {
+                newRawTargets = append(newRawTargets, ipnet.String())
+            } else {
+                newRawTargets = append(newRawTargets, rawTarget)
+            }
+        }
+        rawTargets = newRawTargets
     }
 
     if gatewayRanges != "" {
