@@ -481,9 +481,10 @@ var (
     progressDelay     int
     excludePortRanges string
     excludePorts      []int
+    gatewayRanges     string
 
-    defaultPortsLen int
-    mutex           sync.Mutex
+    defaultPortsLen   int
+    mutex             sync.Mutex
 
 
     total             = 0
@@ -663,24 +664,25 @@ Options:
 
 
 func init() {
-    flag.StringVar(&portRanges,  "p", rawCommonPorts, " Ports  Default port ranges. (Default is \"in\" port group)")
-    flag.IntVar(&numOfgoroutine, "t", 512,            " Int    The Number of Goroutine (Default is 512)")
-    flag.IntVar(&timeout,        "T", 1980,           " Int    TCP Connect Timeout (Default is 1980ms)")
-    flag.StringVar(&infile,      "i", "",             " File   Target input from list")
-    flag.StringVar(&outfile,     "o", "",             " File   Output file path")
-    flag.BoolVar(&udpmode,       "u", false,          "        UDP spray")
-    flag.BoolVar(&echoMode,      "e", false,          "        Echo mode (TCP needs to be manually)")
-    flag.BoolVar(&closedMode,    "c", false,          "        Allow display of closed ports (Only TCP)")
-    flag.IntVar(&autoDiscard,    "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
-    flag.BoolVar(&forceScan,     "A", false,          "        Disable auto discard")
-    flag.BoolVar(&aliveMode,     "l", false,          "        Output alive host")
-    flag.BoolVar(&fuzzPort,      "fuzz", false,       "     Fuzz Port")
-    flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
-    flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
-    flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
+    flag.StringVar(&portRanges,    "p", rawCommonPorts, " Ports  Default port ranges (Default is \"in\" port group)")
+    flag.IntVar(&numOfgoroutine,   "t", 512,            " Int    The Number of Goroutine (Default is 512)")
+    flag.IntVar(&timeout,          "T", 1980,           " Int    TCP Connect Timeout (Default is 1980ms)")
+    flag.StringVar(&infile,        "i", "",             " File   Target input from list")
+    flag.StringVar(&outfile,       "o", "",             " File   Output file path")
+    flag.BoolVar(&udpmode,         "u", false,          "        UDP spray")
+    flag.BoolVar(&echoMode,        "e", false,          "        Echo mode (TCP needs to be manually)")
+    flag.BoolVar(&closedMode,      "c", false,          "        Allow display of closed ports (Only TCP)")
+    flag.IntVar(&autoDiscard,      "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
+    flag.BoolVar(&forceScan,       "A", false,          "        Disable auto discard")
+    flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/100/172/192/all)")
+    flag.BoolVar(&aliveMode,       "l", false,          "        Output alive host")
+    flag.BoolVar(&fuzzPort,        "fuzz", false,       "     Fuzz Port")
+    flag.StringVar(&senddata,      "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
+    flag.IntVar(&progressDelay,    "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
+    flag.BoolVar(&verbose,         "v", false,          "        Verbose mode")
     flag.StringVar(&excludePortRanges,"ep", "",            " Ports  Exclude port (see -p)")
-    flag.BoolVar(&showHosts,     "sh", false,         "       Show scan target")
-    flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports (see -p)")
+    flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
+    flag.BoolVar(&showPorts,       "sp", false,         "       Only show default ports (see -p)")
     flag.Usage = usage
 
     // initialize the port map
@@ -731,7 +733,27 @@ func main() {
         rawTargets = FileReadlines(infile)
     }
 
-    for _, rawTarget := range rawTargets {
+    if gatewayRanges != "" {
+        if gatewayRanges == "all" {
+            gatewayRanges = "10,100,172,192"
+        }
+        for _, gatewayNet := range strings.Split(gatewayRanges, ",") {
+            switch gatewayNet {
+                case "10":
+                    rawTargets = append(rawTargets, "10.*.*.1", "10.*.*.254")
+                case "100":
+                    rawTargets = append(rawTargets, "100.64-127.*.1", "100.64-127.*.254")
+                case "172":
+                    rawTargets = append(rawTargets, "172.16-31.*.1", "172.16-31.*.254")
+                case "192":
+                    rawTargets = append(rawTargets, "192.168.*.1", "192.168.*.254")
+                default:
+                    ErrPrint(fmt.Sprintf("Wrong gateway name (-g): %s", gatewayNet))
+            }
+        }
+    }
+
+    for _, rawTarget := range RemoveRepeatedElement(rawTargets) {
         err := ParseTarget(rawTarget, defaultPorts)
         if err != nil {
             ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
