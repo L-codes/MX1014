@@ -7,7 +7,7 @@
 
 ## Version
 
-2.0.0 - [版本修改日志](CHANGELOG.md)
+2.1.0 - [版本修改日志](CHANGELOG.md)
 
 
 
@@ -32,13 +32,14 @@
 1. 直接运行，查看帮助信息 (所有参数与语法说明)
 ```ruby
 $ ./mx1014
+
                           ...                                     .
                         .111111111111111.........................1111
       ......111..    .10011111011111110000000000000000111111111100000
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.0.0
+  .001              1001               Version 2.1.0
   .1.              ...1.
 
 
@@ -52,23 +53,34 @@ Target Example:
     github.com:22,443,rce
 
 Options:
-    -p  Ports  Default port ranges. (Default is "in" port group)
+  [Target]
     -i  File   Target input from list
+    -g  Net    Intranet gateway address range (10/100/172/192/all)
+    -sh        Show scan target
+    -cnet      C net mode
+
+  [Port]
+    -p  Ports  Default port ranges (Default is "in" port group)
+    -sp        Only show default ports (see -p)
+    -ep Ports  Exclude port (see -p)
+    -hp Ports  Priority scan port (Default 80,443,8080,22,445,3389)
+    -fuzz      Fuzz Port
+
+  [Connect]
     -t  Int    The Number of Goroutine (Default is 512)
-    -T  Int    TCP Connect Timeout (Default is 1514ms)
-    -o  File   Output file path
-    -r         Scan in import order
+    -T  Int    TCP Connect Timeout (Default is 1980ms)
     -u         UDP spray
     -e         Echo mode (TCP needs to be manually)
+    -A         Disable auto discard
+    -a  Int    Too many filtered, Discard the host (Default is 512)
+
+  [Output]
+    -o  File   Output file path
     -c         Allow display of closed ports (Only TCP)
     -d  Str    Specify Echo mode data (Default is "%port%\n")
     -D  Int    Progress Bar Refresh Delay (Default is 5s)
     -l         Output alive host
-    -a  Int    Too many filtered, Discard the host (Default is 1014)
-    -A         Disable auto disable
     -v         Verbose mode
-    -fuzz      Fuzz Port
-    -sp        Only show default ports (see -p)
 ```
 
 2. 简单扫描三百多个内网常见端口
@@ -166,6 +178,14 @@ $ ./mx1014 -l -p 80 192.168.1.134
 $ ./mx1014 -sp -p 80 -fuzz
 # Count: 4
 81,80,8080,79
+```
+
+8. 快速探测内网资产
+```ruby
+# 通过 80 端口找到内网存活的网段
+$ ./mx1014 -l -p 80 -g all -o up.txt
+# 根据存活的网段进行 C 段探测
+$ ./mx1014 -cnet -i up.txt
 ```
 
 ## Port Group
