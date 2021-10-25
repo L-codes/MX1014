@@ -451,7 +451,7 @@ func FileReadlines(readfile string) []string {
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
         line := strings.Trim(scanner.Text(), " \t\f\v")
-        if line != "" {
+        if line != "" && line[0] != 0x23 {  // 0x23 == #
             lines = append(lines, line)
         }
     }
@@ -727,10 +727,10 @@ func main() {
 
     // parse target
     var rawTargets []string
-    if infile == "" {
-        rawTargets = flag.Args()
-    } else {
-        rawTargets = FileReadlines(infile)
+    rawTargets = flag.Args()
+
+    if infile != "" {
+        rawTargets = append(rawTargets, FileReadlines(infile)...)
     }
 
     if gatewayRanges != "" {
