@@ -757,10 +757,13 @@ func main() {
     log.Printf("# %s Start scanning %d hosts...%s (reqs: %d)\n\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, EchoModePrompt, total)
     PortScan()
     spendTime := time.Since(startTime).Seconds()
-    pps := float64(total) / spendTime
+    pps := int(float64(total) / spendTime)
+    if pps > total {
+        pps = total
+    }
     aliveRate := hostUpCount * 100.0 / hostTotal
     endTime := time.Now().Format("2006/01/02 15:04:05")
     log.Printf("\n# %s Finished %d tasks.\n", endTime, total)
-    log.Printf("# up: %d%% (%d/%d), discard: %d, open: %d, pps: %.0f, time: %s\n", aliveRate, hostUpCount, hostTotal, hostDiscard, openCount, pps, secondToTime(int(spendTime)))
+    log.Printf("# up: %d%% (%d/%d), discard: %d, open: %d, pps: %d, time: %s\n", aliveRate, hostUpCount, hostTotal, hostDiscard, openCount, pps, secondToTime(int(spendTime)))
 
 }
