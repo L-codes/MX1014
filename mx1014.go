@@ -405,6 +405,20 @@ func PortScan() {
         }()
     }
 
+    if headPortRanges != "" {
+        for _, port := range ParsePortRange(headPortRanges) {
+            rawTargets := portMap[port]
+            for _, rawTarget := range rawTargets {
+                for _, host := range hostMap[rawTarget] {
+                    targetAddr := host + ":" + port
+                    targetsChan <- targetAddr
+                    wg.Add(1)
+                }
+            }
+            delete(portMap, port)
+        }
+    }
+
     for port, rawTargets := range portMap {
         for _, rawTarget := range rawTargets {
             for _, host := range hostMap[rawTarget] {
@@ -482,6 +496,7 @@ var (
     progressDelay     int
     excludePortRanges string
     excludePorts      []int
+    headPortRanges    string
     gatewayRanges     string
 
     defaultPortsLen   int
@@ -655,8 +670,8 @@ Options:
 `)
     flagSet := flag.CommandLine
     options := map[string][]string {
-        "Target": []string{"i", "sh"},
-        "Port":   []string{"p", "sp", "ep", "fuzz"},
+        "Target": []string{"i", "g", "sh", "cnet"},
+        "Port":   []string{"p", "sp", "ep", "hp", "fuzz"},
         "Connect": []string{"t", "T", "u", "e", "A", "a"},
         "Output": []string{"o", "c", "d", "D", "l", "v"},
     }
@@ -674,26 +689,34 @@ Options:
 
 
 func init() {
+    // Target
+    flag.StringVar(&infile,        "i", "",             " File   Target input from list")
+    flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/100/172/192/all)")
+    flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
+    flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
+
+    // Port
     flag.StringVar(&portRanges,    "p", rawCommonPorts, " Ports  Default port ranges (Default is \"in\" port group)")
+    flag.BoolVar(&showPorts,       "sp", false,         "       Only show default ports (see -p)")
+    flag.StringVar(&excludePortRanges,"ep", "",         "Ports  Exclude port (see -p)")
+    flag.StringVar(&headPortRanges,"hp", "80,443,8080,22,445,3389", "Ports  Priority scan port (Default 80,443,8080,22,445,3389)")
+    flag.BoolVar(&fuzzPort,        "fuzz", false,       "     Fuzz Port")
+
+    // Connect
     flag.IntVar(&numOfgoroutine,   "t", 512,            " Int    The Number of Goroutine (Default is 512)")
     flag.IntVar(&timeout,          "T", 1980,           " Int    TCP Connect Timeout (Default is 1980ms)")
-    flag.StringVar(&infile,        "i", "",             " File   Target input from list")
-    flag.StringVar(&outfile,       "o", "",             " File   Output file path")
     flag.BoolVar(&udpmode,         "u", false,          "        UDP spray")
     flag.BoolVar(&echoMode,        "e", false,          "        Echo mode (TCP needs to be manually)")
-    flag.BoolVar(&closedMode,      "c", false,          "        Allow display of closed ports (Only TCP)")
-    flag.IntVar(&autoDiscard,      "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
     flag.BoolVar(&forceScan,       "A", false,          "        Disable auto discard")
-    flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/100/172/192/all)")
-    flag.BoolVar(&aliveMode,       "l", false,          "        Output alive host")
-    flag.BoolVar(&fuzzPort,        "fuzz", false,       "     Fuzz Port")
-    flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
+    flag.IntVar(&autoDiscard,      "a", 512,            " Int    Too many filtered, Discard the host (Default is 512)")
+
+    // Output
+    flag.StringVar(&outfile,       "o", "",             " File   Output file path")
+    flag.BoolVar(&closedMode,      "c", false,          "        Allow display of closed ports (Only TCP)")
     flag.StringVar(&senddata,      "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,    "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
+    flag.BoolVar(&aliveMode,       "l", false,          "        Output alive host")
     flag.BoolVar(&verbose,         "v", false,          "        Verbose mode")
-    flag.StringVar(&excludePortRanges,"ep", "",            " Ports  Exclude port (see -p)")
-    flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
-    flag.BoolVar(&showPorts,       "sp", false,         "       Only show default ports (see -p)")
     flag.Usage = usage
 
     // initialize the port map
