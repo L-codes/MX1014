@@ -660,9 +660,9 @@ Options:
         "Connect": []string{"t", "T", "u", "e", "A", "a"},
         "Output": []string{"o", "c", "d", "D", "l", "v"},
     }
-    for category, opts := range options {
+    for _, category := range []string{"Target", "Port", "Connect", "Output"} {
         fmt.Printf("  [%s]\n", category)
-        for _, name := range opts {
+        for _, name := range options[category] {
             fl4g := flagSet.Lookup(name)
             fmt.Printf("    -%s", fl4g.Name)
             fmt.Printf(" %s\n", fl4g.Usage)
