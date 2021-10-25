@@ -654,11 +654,20 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "i", "t", "T", "o", "u", "e", "c", "d", "D", "l", "a", "A", "ep", "sh", "sp", "v", "fuzz"}
-    for _, name := range optsOrder {
-        fl4g := flagSet.Lookup(name)
-        fmt.Printf("    -%s", fl4g.Name)
-        fmt.Printf(" %s\n", fl4g.Usage)
+    options := map[string][]string {
+        "Target": []string{"i", "sh"},
+        "Port":   []string{"p", "sp", "ep", "fuzz"},
+        "Connect": []string{"t", "T", "u", "e", "A", "a"},
+        "Output": []string{"o", "c", "d", "D", "l", "v"},
+    }
+    for category, opts := range options {
+        fmt.Printf("  [%s]\n", category)
+        for _, name := range opts {
+            fl4g := flagSet.Lookup(name)
+            fmt.Printf("    -%s", fl4g.Name)
+            fmt.Printf(" %s\n", fl4g.Usage)
+        }
+        fmt.Print("\n")
     }
     os.Exit(0)
 }
