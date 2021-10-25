@@ -185,6 +185,9 @@ func ParsePortRange(portList string) ([]string) {
             if err != nil {
                 ErrPrint("SinglePort strconv error")
             }
+            if singlePort > 65535 || singlePort <= 0 {
+                ErrPrint("Wrong port number: " + i)
+            }
             ports = append(ports, strconv.Itoa(singlePort))
         }
     }
@@ -851,5 +854,7 @@ func main() {
     endTime := time.Now().Format("2006/01/02 15:04:05")
     log.Printf("\n# %s Finished %d tasks.\n", endTime, total)
     log.Printf("# up: %d%% (%d/%d), discard: %d, open: %d, pps: %d, time: %s\n", aliveRate, hostUpCount, hostTotal, hostDiscard, openCount, pps, secondToTime(int(spendTime)))
-
+    if outfile != "" {
+        log.Printf("# Save the result to \"%s\"\n", outfile)
+    }
 }
