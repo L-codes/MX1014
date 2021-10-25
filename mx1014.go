@@ -461,31 +461,33 @@ func FileReadlines(readfile string) []string {
 
 var (
     // args
-    portRanges      string
-    numOfgoroutine  int
-    outfile         string
-    infile          string
-    timeout         int
-    autoDiscard     int
-    verbose         bool
-    udpmode         bool
-    forceScan       bool
-    echoMode        bool
-    closedMode      bool
-    showPorts       bool
-    showHosts       bool
-    aliveMode       bool
-    fuzzPort        bool
-    senddata        string
-    doneCount       int
-    progressDelay   int
+    portRanges        string
+    numOfgoroutine    int
+    outfile           string
+    infile            string
+    timeout           int
+    autoDiscard       int
+    verbose           bool
+    udpmode           bool
+    forceScan         bool
+    echoMode          bool
+    closedMode        bool
+    showPorts         bool
+    showHosts         bool
+    aliveMode         bool
+    fuzzPort          bool
+    senddata          string
+    doneCount         int
+    progressDelay     int
+    excludePortRanges string
+    excludePorts      []int
 
     defaultPortsLen int
     mutex           sync.Mutex
 
 
     total             = 0
-    hostUpCount         = 0
+    hostUpCount       = 0
     hostDiscard       = 0
     hostTotal         = 0
     openCount         = 0
@@ -650,7 +652,7 @@ Target Example:
 Options:
 `)
     flagSet := flag.CommandLine
-    optsOrder := []string{"p", "i", "t", "T", "o", "u", "e", "c", "d", "D", "l", "a", "A", "v", "fuzz", "sh", "sp"}
+    optsOrder := []string{"p", "i", "t", "T", "o", "u", "e", "c", "d", "D", "l", "a", "A", "ep", "sh", "sp", "v", "fuzz"}
     for _, name := range optsOrder {
         fl4g := flagSet.Lookup(name)
         fmt.Printf("    -%s", fl4g.Name)
@@ -676,6 +678,7 @@ func init() {
     flag.StringVar(&senddata,    "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,  "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&verbose,       "v", false,          "        Verbose mode")
+    flag.StringVar(&excludePortRanges,"ep", "",            " Ports  Exclude port (see -p)")
     flag.BoolVar(&showHosts,     "sh", false,         "       Show scan target")
     flag.BoolVar(&showPorts,     "sp", false,         "       Only show default ports (see -p)")
     flag.Usage = usage
@@ -732,6 +735,19 @@ func main() {
         err := ParseTarget(rawTarget, defaultPorts)
         if err != nil {
             ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
+        }
+    }
+
+    // exclude ports
+    if excludePortRanges != "" {
+        excludePorts := ParsePortRange(excludePortRanges)
+        for _, eport := range excludePorts {
+            if portMap[eport] != nil {
+               for _, rawTarget := range portMap[eport] {
+                   total -= len(hostMap[rawTarget])
+               }
+               delete(hostMap, eport)
+            }
         }
     }
 
