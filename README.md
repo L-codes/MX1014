@@ -7,7 +7,7 @@
 
 ## Version
 
-2.1.0 - [版本修改日志](CHANGELOG.md)
+2.1.1 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -34,7 +34,7 @@ $ ./mx1014
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.1.0
+  .001              1001               Version 2.1.1
   .1.              ...1.
 
 
@@ -50,7 +50,7 @@ Target Example:
 Options:
   [Target]
     -i  File   Target input from list
-    -g  Net    Intranet gateway address range (10/100/172/192/all)
+    -g  Net    Intranet gateway address range (10/172/192/all)
     -sh        Show scan target
     -cnet      C net mode
 

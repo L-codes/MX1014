@@ -149,6 +149,20 @@ func AddFuzzPort(ports []string) ([]string) {
         if portNum > 1 {
             fuzzPorts = append(fuzzPorts, strconv.Itoa(portNum - 1))
         }
+        if len(port) <= 4 {
+            // left overlapping
+            leftOverlapping := string(port[0]) + port
+            leftOverlappingNum, _ := strconv.Atoi(leftOverlapping)
+            if leftOverlappingNum <= 65535 {
+                fuzzPorts = append(fuzzPorts, leftOverlapping)
+            }
+            // right overlapping
+            rightOverlapping := port + string(port[len(port) - 1])
+            rightOverlappingNum, _ := strconv.Atoi(rightOverlapping)
+            if rightOverlappingNum <= 65535 {
+                fuzzPorts = append(fuzzPorts, rightOverlapping)
+            }
+        }
     }
     fuzzPorts = append(fuzzPorts, ports...)
     return fuzzPorts
@@ -656,7 +670,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.1.0
+  .001              1001               Version 2.1.1
   .1.              ...1.
 
 
@@ -694,7 +708,7 @@ Options:
 func init() {
     // Target
     flag.StringVar(&infile,        "i", "",             " File   Target input from list")
-    flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/100/172/192/all)")
+    flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
     flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
 
@@ -786,14 +800,12 @@ func main() {
 
     if gatewayRanges != "" {
         if gatewayRanges == "all" {
-            gatewayRanges = "10,100,172,192"
+            gatewayRanges = "10,172,192"
         }
         for _, gatewayNet := range strings.Split(gatewayRanges, ",") {
             switch gatewayNet {
                 case "10":
                     rawTargets = append(rawTargets, "10.*.*.1", "10.*.*.254")
-                case "100":
-                    rawTargets = append(rawTargets, "100.64-127.*.1", "100.64-127.*.254")
                 case "172":
                     rawTargets = append(rawTargets, "172.16-31.*.1", "172.16-31.*.254")
                 case "192":
