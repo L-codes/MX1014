@@ -508,6 +508,7 @@ var (
     aliveMode         bool
     fuzzPort          bool
     cNet              bool
+    ignoreErrHost     bool
     senddata          string
     doneCount         int
     progressDelay     int
@@ -670,7 +671,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.1.1
+  .001              1001               Version 2.2.0
   .1.              ...1.
 
 
@@ -687,7 +688,7 @@ Options:
 `)
     flagSet := flag.CommandLine
     options := map[string][]string {
-        "Target": []string{"i", "g", "sh", "cnet"},
+        "Target": []string{"i", "I", "g", "sh", "cnet"},
         "Port":   []string{"p", "sp", "ep", "hp", "fuzz"},
         "Connect": []string{"t", "T", "u", "e", "A", "a"},
         "Output": []string{"o", "c", "d", "D", "l", "v"},
@@ -708,6 +709,7 @@ Options:
 func init() {
     // Target
     flag.StringVar(&infile,        "i", "",             " File   Target input from list")
+    flag.BoolVar(&ignoreErrHost,   "I", false,          "       Ignore the wrong address and continue scanning")
     flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
     flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
@@ -819,7 +821,12 @@ func main() {
     for _, rawTarget := range RemoveRepeatedElement(rawTargets) {
         err := ParseTarget(rawTarget, defaultPorts)
         if err != nil {
-            ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
+            if ignoreErrHost {
+                log.Printf("# Wrong target: %s", rawTarget)
+            } else {
+                ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
+            }
+
         }
     }
 

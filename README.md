@@ -7,7 +7,7 @@
 
 ## Version
 
-2.1.1 - [版本修改日志](CHANGELOG.md)
+2.2.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -27,14 +27,13 @@
 1. 直接运行，查看帮助信息 (所有参数与语法说明)
 ```ruby
 $ ./mx1014
-
                           ...                                     .
                         .111111111111111.........................1111
       ......111..    .10011111011111110000000000000000111111111100000
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.1.1
+  .001              1001               Version 2.2.0
   .1.              ...1.
 
 
@@ -50,6 +49,7 @@ Target Example:
 Options:
   [Target]
     -i  File   Target input from list
+    -I        Ignore the wrong address and continue scanning
     -g  Net    Intranet gateway address range (10/172/192/all)
     -sh        Show scan target
     -cnet      C net mode
@@ -147,7 +147,7 @@ $ cat > ip.txt <<EOF
 heredoc> 192.168.1.134:80
 heredoc> 192.168.1.130:22
 EOF
-$ ./mx1014 -u -i ip.txt
+$ ./mx1014 -u -I -i ip.txt  # -I 忽略错误地址继续扫描
 # 2021/10/16 15:57:47 Start scanning 2 hosts... (UDP Spray) (reqs: 2)
 
 
