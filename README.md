@@ -7,7 +7,7 @@
 
 ## Version
 
-2.2.0 - [版本修改日志](CHANGELOG.md)
+2.3.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -27,13 +27,14 @@
 1. 直接运行，查看帮助信息 (所有参数与语法说明)
 ```ruby
 $ ./mx1014
+
                           ...                                     .
                         .111111111111111.........................1111
       ......111..    .10011111011111110000000000000000111111111100000
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.2.0
+  .001              1001               Version 2.3.0
   .1.              ...1.
 
 
@@ -49,7 +50,7 @@ Target Example:
 Options:
   [Target]
     -i  File   Target input from list
-    -I        Ignore the wrong address and continue scanning
+    -I         Ignore the wrong address and continue scanning
     -g  Net    Intranet gateway address range (10/172/192/all)
     -sh        Show scan target
     -cnet      C net mode
@@ -75,6 +76,7 @@ Options:
     -d  Str    Specify Echo mode data (Default is "%port%\n")
     -D  Int    Progress Bar Refresh Delay (Default is 5s)
     -l         Output alive host
+    -P         Do not output protocol name
     -v         Verbose mode
 ```
 
@@ -109,6 +111,13 @@ $ ./mx1014 192.168.1.133/24:ssh 192.168.1.133:80-90,443,mysql
 192.168.1.133:443      (iis,web2,web1,in)
 
 # 2021/10/16 15:47:02 Finished 527 tasks. alive: 1% (3/257), open: 12, pps: 345, time: 1s
+```
+3. 输出信息与第三方程序联动，仅需 IP:PORT 的输出格式
+```ruby
+$ ./mx1014 -P -o out.txt 192.168.1.133:22 # -P 参数不输出端口协议预判信息
+$ grep -v '#' out.txt # 所有的提示信息等均以 '#' 开头，方便过滤
+
+192.168.1.133:22
 ```
 
 

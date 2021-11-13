@@ -232,23 +232,31 @@ func ParseTarget(target string, defaultPorts []string) (error) {
         if err != nil {
             return err
         }
+        mutex.Lock()
         hostMap[target] = hosts
+        mutex.Unlock()
     } else if IsIP(target) && strings.ContainsAny(target, "*-") {
         hosts, err := IPWildcard(target)
         if err != nil {
             return err
         }
+        mutex.Lock()
         hostMap[target] = hosts
+        mutex.Unlock()
     } else {
-        if _, err := net.LookupHost(target); err != nil {
+        _, err := net.LookupHost(target)
+        if err != nil {
             if target[0] == 0x2d {  // "-"
                 log.Println("[*] Usage: ./mx1014 [Options] [Target1] [Target2]...")
             }
             return err
         }
+        mutex.Lock()
         hostMap[target] = []string{ target }
+        mutex.Unlock()
     }
 
+    mutex.Lock()
     for _, port := range ports {
         portMap[port] = append(portMap[port], target)
     }
@@ -256,6 +264,7 @@ func ParseTarget(target string, defaultPorts []string) (error) {
     hostCount := len(hostMap[target])
     hostTotal += hostCount
     total += portsLen * hostCount
+    mutex.Unlock()
 
     return nil
 }
@@ -672,7 +681,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.2.0
+  .001              1001               Version 2.3.0
   .1.              ...1.
 
 
@@ -820,17 +829,31 @@ func main() {
         }
     }
 
-    for _, rawTarget := range RemoveRepeatedElement(rawTargets) {
-        err := ParseTarget(rawTarget, defaultPorts)
-        if err != nil {
-            if ignoreErrHost {
-                log.Printf("# Wrong target: %s", rawTarget)
-            } else {
-                ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
-            }
+    wg := sync.WaitGroup{}
+    rawtargetChan := make(chan string, timeout)
+    for i := 0; i <= numOfgoroutine; i++ {
+        go func() {
+            for rawTarget := range rawtargetChan {
+                err := ParseTarget(rawTarget, defaultPorts)
+                mutex.Lock()
+                if err != nil {
+                    if ignoreErrHost {
+                        log.Printf("# Wrong target: %s", rawTarget)
+                    } else {
+                        ErrPrint(fmt.Sprintf("Wrong target: %s", rawTarget))
+                    }
 
-        }
+                }
+                mutex.Unlock()
+                wg.Done()
+            }
+        }()
     }
+    for _, rawTarget := range RemoveRepeatedElement(rawTargets) {
+        rawtargetChan <- rawTarget
+        wg.Add(1)
+    }
+    wg.Wait()
 
     // exclude ports
     if excludePortRanges != "" {
