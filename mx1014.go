@@ -371,7 +371,7 @@ func SendPacket(targetAddr string) {
                     if disableProtocolName || servers == "" {
                         log.Print(targetAddr)
                     } else {
-                        log.Printf("%-26s(%s)", targetAddr, servers)
+                        log.Printf("%-26s (%s)", targetAddr, servers)
                     }
                 }
             case 1: //closed
