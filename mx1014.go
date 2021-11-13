@@ -359,10 +359,10 @@ func SendPacket(targetAddr string) {
                 } else {
                     port := strings.Split(targetAddr, ":")[1]
                     servers := portServersMap[port]
-                    if servers == "" {
+                    if disableProtocolName || servers == "" {
                         log.Print(targetAddr)
                     } else {
-                        log.Printf("%-22s(%s)", targetAddr, servers)
+                        log.Printf("%-26s(%s)", targetAddr, servers)
                     }
                 }
             case 1: //closed
@@ -516,6 +516,7 @@ var (
     excludePorts      []int
     headPortRanges    string
     gatewayRanges     string
+    disableProtocolName bool
 
     defaultPortsLen   int
     mutex             sync.Mutex
@@ -691,7 +692,7 @@ Options:
         "Target": []string{"i", "I", "g", "sh", "cnet"},
         "Port":   []string{"p", "sp", "ep", "hp", "fuzz"},
         "Connect": []string{"t", "T", "u", "e", "A", "a"},
-        "Output": []string{"o", "c", "d", "D", "l", "v"},
+        "Output": []string{"o", "c", "d", "D", "l", "P", "v"},
     }
     for _, category := range []string{"Target", "Port", "Connect", "Output"} {
         fmt.Printf("  [%s]\n", category)
@@ -709,7 +710,7 @@ Options:
 func init() {
     // Target
     flag.StringVar(&infile,        "i", "",             " File   Target input from list")
-    flag.BoolVar(&ignoreErrHost,   "I", false,          "       Ignore the wrong address and continue scanning")
+    flag.BoolVar(&ignoreErrHost,   "I", false,          "        Ignore the wrong address and continue scanning")
     flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
     flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
@@ -735,6 +736,7 @@ func init() {
     flag.StringVar(&senddata,      "d", "%port%\n",     " Str    Specify Echo mode data (Default is \"%port%\\n\")")
     flag.IntVar(&progressDelay,    "D", 5,              " Int    Progress Bar Refresh Delay (Default is 5s)")
     flag.BoolVar(&aliveMode,       "l", false,          "        Output alive host")
+    flag.BoolVar(&disableProtocolName, "P", false,          "        Do not output protocol name")
     flag.BoolVar(&verbose,         "v", false,          "        Verbose mode")
     flag.Usage = usage
 
