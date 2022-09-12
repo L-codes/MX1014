@@ -1,13 +1,13 @@
 # MX1014
 
-**MX1014** 是一个遵循 **“短平快”** 原则的灵活、轻便和快速端口扫描器
+**MX1014** 是一个遵循 **“短平快”** 原则的灵活、轻便和快速端口扫描器 (满足红队需求的出网测试、网段探测和快速高危端口扫描等需求)
 
 > 此工具仅限于安全研究和教学，用户承担因使用此工具而导致的所有法律和相关责任！ 作者不承担任何法律和相关责任！
 
 
 ## Version
 
-2.3.0 - [版本修改日志](CHANGELOG.md)
+2.4.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -20,7 +20,8 @@
 * 支持端口模糊测试
 * 支持各组目标扫描不同的端口
 * windows 最低环境支持 xp/2003 等 (即兼容 Golang 1.10.8)
-* linux 支持 CentOS5 (Linux 2.6.18) 等 (即兼容 Golang 1.10.8)
+* 支持 Linux 2.6.18 等 (即兼容 Golang 1.10.8)
+* 使用 epollwait 修改编译, release 兼容 CentOS5
 
 
 ## Basic Usage
@@ -198,16 +199,17 @@ $ ./mx1014 -sp -p 80 -fuzz
 {
   # pentest
   in: "rce,info,brute,web2",
-  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb",
-  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios",
+  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo",
+  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana",
   brute: "ftp,ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,rtsp,kerberos,ldap,socks",
 
   # web
   web1: "80,443,8080",
-  web2: "81-90,444,800,801,1024,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix",
+  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana",
   iis: "80,443,47001",
   jboss: "80,1111,4444,4445,8080,8443,45566",
   zookeeper: "2181,2888,3888",
+  dubbo: "20880",
   solr: "8983",
   websphere_web: "8880,9043,9080,9081,9082,9083,9090.9091,9443",
   websphere: "websphere_web,2809,5558,5578,7276,7286,9060,9100,9353,9401,9402",
@@ -232,6 +234,7 @@ $ ./mx1014 -sp -p 80 -fuzz
   nexus: "8081",
   sapido: "1080",
   yapi: "3000",
+  grafana: "3000",
   hivision: "7088",
   ejinshan: "6868",
   seeyon: "8001",
@@ -248,7 +251,7 @@ $ ./mx1014 -sp -p 80 -fuzz
 
   # database
   database1: "mssql,oracle,mysql,postgresql,redis,memcache,mongodb",
-  database2: "mssql,oracle,mysql,sybase,db2,postgresql,couchdb,redis,memcache,hbase,mongodb,hsqldb,cassandra",
+  database2: "mssql,oracle,mysql,sybase,db2,postgresql,couchdb,redis,memcache,hbase,mongodb,hsqldb,cassandra,kingbase8,dameng",
   mysql: "3306,3307,3308",
   mssql: "1433,1434",
   oracle: "210,1158,1521",
@@ -262,6 +265,8 @@ $ ./mx1014 -sp -p 80 -fuzz
   memcache: "11211",
   hbase: "16000,16010,16020,16030",
   cassandra: "9042,9160",
+  kingbase8: "54321",
+  dameng: "5236",
 
   # os
   win: "ssh,ftp,telnet,kerberos,msrpc,vnc,netbios,ldap,smb,socks,rdp,winrm,ntp",
@@ -311,7 +316,7 @@ $ ./mx1014 -sp -p 80 -fuzz
   hashicorp: "8500",
   checkpoint: "264",
   pcanywhere: "5632",
-  docker: "2375,2376,2377,5000",
+  docker: "2375,2376,2377,4243,5000",
   iscsi: "3260",
   saprouter: "3299",
   distcc: "3632",
@@ -327,8 +332,9 @@ $ ./mx1014 -sp -p 80 -fuzz
   rlogin: "512,513,514",
   glassfish: "4848",
   rocketmq: "9876,10909,10911,10912",
-  vmware: "9875",
+  vmware: "9875,5480",
   x11: "6000",
+  log4j: "4712", # log4j SocketAppender
 }
 ```
 
@@ -342,6 +348,7 @@ $ ./mx1014 -sp -p 80 -fuzz
 
  * 对本地接口网络自动进行 ARP 的探测存活
 
+ * -g 模式下,末尾ip允许多个，或者支持 1.1.1,2.3
 
 ## License
 
