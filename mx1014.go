@@ -291,6 +291,8 @@ func TcpConnect(targetAddr string) int {
             return 6
         } else if strings.Contains(errMsg, "The requested address is not valid in its context.") {
             return 6
+        } else if strings.Contains(errMsg, "A socket operation was attempted to an unreachable network.") {
+            return 6
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
