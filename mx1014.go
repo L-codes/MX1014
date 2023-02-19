@@ -12,6 +12,7 @@ import (
     "strings"
     "sync"
     "time"
+    . "mx1014/lib"
 )
 
 
@@ -778,6 +779,9 @@ func init() {
 
 
 func main() {
+
+    SetUlimit()
+
     flag.Parse()
     log.SetFlags(0)
     if outfile != "" {
