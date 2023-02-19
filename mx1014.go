@@ -270,7 +270,7 @@ func ParseTarget(target string, defaultPorts []string) (error) {
 }
 
 
-// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, unkown: -1
+// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, unkown: -1, abort: -2
 func TcpConnect(targetAddr string) int {
     conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
     if err != nil {
@@ -293,6 +293,8 @@ func TcpConnect(targetAddr string) int {
             return 6
         } else if strings.Contains(errMsg, "A socket operation was attempted to an unreachable network.") {
             return 6
+        } else if strings.Contains(errMsg, "too many open files") {
+            return -2
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
@@ -407,6 +409,10 @@ func SendPacket(targetAddr string) {
                 targetFilterCount[host] = autoDiscard + 1
             case 6: //error_host
                 targetFilterCount[host] = autoDiscard + 1
+            case -2: //abort
+                log.Printf("# too many open files !!!")
+                log.Printf("# Please lower the `-t` value and run again")
+                os.Exit(-2)
             case -1: //unkown
             }
             mutex.Unlock()
