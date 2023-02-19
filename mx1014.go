@@ -278,6 +278,8 @@ func TcpConnect(targetAddr string) int {
         errMsg := err.Error()
         if strings.Contains(errMsg, "refused") {
             return 1
+        } else if strings.Contains(errMsg, "An attempt was made to access a socket in a way forbidden by its access permissions.") {
+            return 1
         } else if strings.Contains(errMsg, "timeout") {
             return 2
         } else if strings.Contains(errMsg, "no route to host") {
