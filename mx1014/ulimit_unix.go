@@ -1,6 +1,7 @@
-//go:build darwin || linux
+//go:build linux || darwin
+// +build linux darwin
 
-package lib
+package mx1014
 
 import (
     "fmt"

@@ -1,5 +1,4 @@
 .DS_Store
 release
-mx1014
 tools/release.sh
 *.swp

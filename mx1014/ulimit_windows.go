@@ -1,6 +1,7 @@
 //go:build windows
+// +build windows
 
-package lib
+package mx1014
 
 func SetUlimit() {
 }
