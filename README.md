@@ -7,18 +7,20 @@
 
 ## Version
 
-2.3.1 - [版本修改日志](CHANGELOG.md)
+2.4.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
 
 * 兼容 nmap 的端口和目标语法，并支持导入多个 TARGET, 灵活扫描
 * 扫描过程中有自动判定主机存活是否继续扫描其主机的机制，从而加快端口探测速度
+* 可对端口全开放的(如synproxy)目标，进行自动排除，避免出现无意义的扫描结果
 * 使用端口分组的概念，方便指定特定端口组，进行针对性扫描 (端口别名，参考下面的 "Port Group")
 * 支持 TCP/UDP 的 Echo 回显数据发送 (UDP 不会返回端口状态)，便于出网探测
 * 支持 TCP closed 状态显示，便于主机存活与出网探测
 * 支持端口模糊测试
 * 支持各组目标扫描不同的端口
+* Unix 环境运行时可自动尝试调节`ulimit -n`限制
 * windows 最低环境支持 xp/2003 等 (即兼容 Golang 1.10.8)
 * 支持 Linux 2.6.18 等 (即兼容 Golang 1.10.8)
 * 使用 epollwait 修改编译, release 兼容 CentOS5
@@ -190,6 +192,11 @@ $ ./mx1014 -sp -p 80 -fuzz
 81,80,8080,79
 ```
 
+8. 自动排除端口全开放的主机，如 syn-proxy
+```ruby
+$ ./mx1014 -r -i targets.txt
+```
+
 
 ## Port Group
 ```ruby
@@ -205,7 +212,7 @@ $ ./mx1014 -sp -p 80 -fuzz
 
   # web
   web1: "80,443,8080",
-  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana",
+  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana,wildfly",
   iis: "80,443,47001",
   jboss: "80,1111,4444,4445,8080,8443,45566",
   zookeeper: "2181,2888,3888",
@@ -219,6 +226,7 @@ $ ./mx1014 -sp -p 80 -fuzz
   rabbitmq: "15672",
   flink: "8081",
   oracle_web: "3339",
+  wildfly: "9990",
   baota: "888,8888",
   fastcgi: "9000",
   kc_aom: "12580",
@@ -316,7 +324,8 @@ $ ./mx1014 -sp -p 80 -fuzz
   hashicorp: "8500",
   checkpoint: "264",
   pcanywhere: "5632",
-  docker: "2375,2376,2377,4243,5000",
+  docker: "2375,2376,2377,4243,5000,10250",
+  etcd: "2379",
   iscsi: "3260",
   saprouter: "3299",
   distcc: "3632",
