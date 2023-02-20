@@ -12,6 +12,7 @@ import (
     "strings"
     "sync"
     "time"
+    "math/rand"
     . "mx1014/lib"
 )
 
@@ -331,6 +332,7 @@ func UdpConnect(targetAddr string) int {
 
 
 func ProgressBar() {
+    doneCount = 0
     for {
         time.Sleep(time.Second * time.Duration(progressDelay))
         rate := float64(doneCount) * 100 / float64(total)
@@ -423,6 +425,78 @@ func SendPacket(targetAddr string) {
     }
 }
 
+func RejectAllOpenProgressBar() {
+    doneCount = 0
+    testTotal := hostTotal * rejectAllOpenTimes
+    stopRejectAllOpenProgressBar = false
+    for {
+        time.Sleep(time.Second * time.Duration(progressDelay))
+        if stopRejectAllOpenProgressBar == true {
+            break
+        }
+        rate := float64(doneCount) * 100 / float64(testTotal)
+        second := time.Since(startTime).Seconds()
+        pps := float64(doneCount) / second
+        remaining := second * 100 / float64(rate) - second
+        remainingTime := secondToTime(int(remaining))
+        log.Printf("# reject all open (%d/%d) pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, testTotal, pps, rate, remainingTime)
+    }
+}
+
+func SendRandTCPPacket(host string) {
+
+    targetAddr := host + ":" + RandPort(50000, 65535)
+    flag := TcpConnect(targetAddr)
+
+    mutex.Lock()
+    if flag == 0 {
+        rejectOpenCount[host]++
+    }
+    mutex.Unlock()
+}
+
+func RandPort(min int, max int) string {
+    portNum := rand.Intn(max - min) +  min
+    return strconv.Itoa(portNum)
+}
+
+func RejectAllOpenTargets() {
+    wg := sync.WaitGroup{}
+    targetsChan := make(chan string, timeout)
+
+    go RejectAllOpenProgressBar()
+
+    for i := 0; i <= numOfgoroutine; i++ {
+        go func() {
+            for host := range targetsChan {
+                SendRandTCPPacket(host)
+                mutex.Lock()
+                doneCount++
+                mutex.Unlock()
+                wg.Done()
+            }
+        }()
+    }
+
+    for _, hosts := range hostMap {
+        for _, host := range hosts {
+            for j := 0; j < rejectAllOpenTimes; j++ {
+                targetsChan <- host
+                wg.Add(1)
+            }
+        }
+    }
+    wg.Wait()
+
+    stopRejectAllOpenProgressBar = true
+
+    for host, openCount := range rejectOpenCount {
+        if openCount == rejectAllOpenTimes {
+            rejectCount++
+            log.Printf("# reject all open target: %s\n", host)
+        }
+    }
+}
 
 func PortScan() {
     wg := sync.WaitGroup{}
@@ -447,9 +521,11 @@ func PortScan() {
             rawTargets := portMap[port]
             for _, rawTarget := range rawTargets {
                 for _, host := range hostMap[rawTarget] {
-                    targetAddr := host + ":" + port
-                    targetsChan <- targetAddr
-                    wg.Add(1)
+                    if rejectOpenCount[host] != rejectAllOpenTimes {
+                        targetAddr := host + ":" + port
+                        targetsChan <- targetAddr
+                        wg.Add(1)
+                    }
                 }
             }
             delete(portMap, port)
@@ -459,9 +535,11 @@ func PortScan() {
     for port, rawTargets := range portMap {
         for _, rawTarget := range rawTargets {
             for _, host := range hostMap[rawTarget] {
-                targetAddr := host + ":" + port
-                targetsChan <- targetAddr
-                wg.Add(1)
+                if rejectOpenCount[host] != rejectAllOpenTimes {
+                    targetAddr := host + ":" + port
+                    targetsChan <- targetAddr
+                    wg.Add(1)
+                }
             }
         }
     }
@@ -537,6 +615,12 @@ var (
     headPortRanges    string
     gatewayRanges     string
     disableProtocolName bool
+
+    stopRejectAllOpenProgressBar bool
+    rejectAllOpen     bool
+    rejectAllOpenTimes int
+    rejectCount       int
+    rejectOpenCount   = make(map[string]int)
 
     defaultPortsLen   int
     mutex             sync.Mutex
@@ -714,7 +798,7 @@ Options:
 `)
     flagSet := flag.CommandLine
     options := map[string][]string {
-        "Target": []string{"i", "I", "g", "sh", "cnet"},
+        "Target": []string{"i", "I", "g", "sh", "cnet", "r", "R"},
         "Port":   []string{"p", "sp", "ep", "hp", "fuzz"},
         "Connect": []string{"t", "T", "u", "e", "A", "a"},
         "Output": []string{"o", "c", "d", "D", "l", "P", "v"},
@@ -739,6 +823,8 @@ func init() {
     flag.StringVar(&gatewayRanges, "g", "",             " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts,       "sh", false,         "       Show scan target")
     flag.BoolVar(&cNet,            "cnet", false,       "     C net mode")
+    flag.BoolVar(&rejectAllOpen,   "r", false,          "        Reject all open targets")
+    flag.IntVar(&rejectAllOpenTimes,"R", 1,              " Int    Reject all open of tested (Default is 1)")
 
     // Port
     flag.StringVar(&portRanges,    "p", rawCommonPorts, " Ports  Default port ranges (Default is \"in\" port group)")
@@ -897,6 +983,13 @@ func main() {
 
     if hostTotal == 0 {
         flag.Usage()
+    }
+
+    if rejectAllOpen {
+        log.Printf("# %s Start automatically reject all-open targets, scanning %d hosts... (reqs: %d)\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, hostTotal * rejectAllOpenTimes)
+        RejectAllOpenTargets()
+        endTime := time.Now().Format("2006/01/02 15:04:05")
+        log.Printf("# %s Finished. reject all-open %d hosts.\n\n", endTime, rejectCount)
     }
 
     EchoModePrompt := ""
