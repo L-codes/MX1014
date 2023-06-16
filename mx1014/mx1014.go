@@ -278,6 +278,8 @@ func TcpConnect(targetAddr string) int {
             return 1
         } else if strings.Contains(errMsg, "timeout") {
             return 2
+        } else if strings.Contains(errMsg, "protocol not available") {
+            return 2
         } else if strings.Contains(errMsg, "no route to host") {
             return 3
         } else if strings.Contains(errMsg, "permission denied") {
@@ -290,7 +292,7 @@ func TcpConnect(targetAddr string) int {
             return 6
         } else if strings.Contains(errMsg, "The requested address is not valid in its context.") {
             return 6
-        } else if strings.Contains(errMsg, "A socket operation was attempted to an unreachable network.") {
+        } else if strings.Contains(errMsg, "A socket operation was attempted to an unreachable") {
             return 6
         } else if strings.Contains(errMsg, "too many open files") {
             return -2
