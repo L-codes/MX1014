@@ -201,20 +201,23 @@ $ ./mx1014 -r -i targets.txt
 ## Port Group
 ```ruby
 # NOTE Reference:
-#   https://book.hacktricks.xyz/pentesting/
-#   https://github.com/0xtz/Enum_For_All
+#  all:   https://book.hacktricks.xyz/pentesting/
+#  all:   https://github.com/0xtz/Enum_For_All
+#  jboss: https://www.caldow.cn/archives/4070
 {
   # pentest
   in: "rce,info,brute,web2",
-  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo",
-  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana",
+  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo,jboss",
+  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone",
   brute: "ftp,ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,rtsp,kerberos,ldap,socks",
 
   # web
   web1: "80,443,8080",
-  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana,wildfly",
+  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana,wildfly,nacos",
   iis: "80,443,47001",
-  jboss: "80,1111,4444,4445,8080,8443,45566",
+  jboss: "jboss_remoting,jboss_rmi,80,1111,8080,8443,45566",
+  jboss_rmi: "1098,4444,4445,8083",
+  jboss_remoting: "4446,4447,4457",
   zookeeper: "2181,2888,3888",
   dubbo: "20880",
   solr: "8983",
@@ -249,6 +252,7 @@ $ ./mx1014 -r -i targets.txt
   java_ws: "8887",
   ifw8: "880",
   zabbix: "8069",
+  nacos: "7848,8848,9848,9849",
 
   # mail
   mail: "smtp,pop2,pop3,imap",
@@ -330,12 +334,13 @@ $ ./mx1014 -r -i targets.txt
   saprouter: "3299",
   distcc: "3632",
   zoho: "8383",
+  phone: "46888",
   svn: "3690",
   snmp: "161",
   epmd: "4369",
   hadoop: "8020,8040,8041,8042,8480,8485,9000,9083,19888,41414,50010,50020,50070,50075,50090,50470,50475",
-  rmi: "1028,1098,1090,4444,11099,47001,10999,1099",
-  jndi: "rmi,1000,1001,1100,1101,4444,4445,4446,4447,5001,8083,9999,10001,10999,11099,19001",
+  rmi: "jboss_rmi,1028,1098,1090,4444,4445,11099,47001,10999,1099",
+  jndi: "rmi,1000,1001,1100,1101,5001,8083,9999,10001,10999,11099,19001",
   jmx: "8093,8686,9010,9011,9012,50500,61616",
   jdwp: "5005,8000,8080,8453,45000,45001",
   rlogin: "512,513,514",

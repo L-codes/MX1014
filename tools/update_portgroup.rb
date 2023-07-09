@@ -5,7 +5,7 @@
 
 ProjectROOT = File.join(__dir__, '..')
 ProjectReadme = File.join(ProjectROOT, 'README.md')
-MX1014GOFILE = File.join(ProjectROOT, 'mx1014.go')
+MX1014GOFILE = File.join(ProjectROOT, 'mx1014/mx1014.go')
 m = File.binread(ProjectReadme).match(/## Port Group\n```ruby([^`]+)/m)
 abort '[!] portGroup not found' if m.nil?
 portgroup = eval(m[1]).transform_values{ _1.split(',') }
@@ -30,5 +30,8 @@ portgroup.transform_values!{|ports|
 portgroup_golang = portgroup.map{|name, ports| %Q|      "#{name}": []int{ #{ports.join(",")} },| }.join("\n")
 
 gocode = File.binread(MX1014GOFILE)
-gocode.sub!(/(?<=portGroup = map\[string\]\[\]int \{\n)(.+?)(?=\n    \})/m, portgroup_golang)
-File.binwrite(MX1014GOFILE, gocode)
+if gocode.sub!(/(?<=portGroup = map\[string\]\[\]int \{\n)(.+?)(?=\n    \}\n)/m, portgroup_golang)
+  File.binwrite(MX1014GOFILE, gocode)
+else
+  abort '[!] portGroup not found in mx1014.go'
+end
