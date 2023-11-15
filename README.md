@@ -207,13 +207,13 @@ $ ./mx1014 -r -i targets.txt
 {
   # pentest
   in: "rce,info,brute,web2",
-  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo,jboss",
+  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo,jboss,nacos,finereport,legendsec",
   info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone",
   brute: "ftp,ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,rtsp,kerberos,ldap,socks",
 
   # web
   web1: "80,443,8080",
-  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana,wildfly,nacos",
+  web2: "81-90,444,800,801,1024,1443,2000,2001,3001,4430,4433,4443,5000,5001,5555,5800,6000-6003,6080,6443,6588,6666,6888,7004-7009,7080,7443,7777,8000-8030,8040,8050,8060,8066,8070,8080-8111,8181,8182,8200,8282,8363,8761,8787,8800,8848,8866,8873,8881-8890,8899,8900,8989,8999,9000-9010,9099,9999,10000,10001,10080,10800,18080,18090,activemq,arl,baota,cassini,dlink,ejinshan,fastcgi,flink,fortigate,hivision,ifw8,iis,java_ws,jboss,kc_aom,kibana,natshell,nexus,oracle_web,portainer,rabbitmq,rizhiyi,sapido,seeyon,solr,squid,weblogic,websphere_web,yapi,elasticsearch,zabbix,grafana,wildfly,nacos,finereport",
   iis: "80,443,47001",
   jboss: "jboss_remoting,jboss_rmi,80,1111,8080,8443,45566",
   jboss_rmi: "1098,4444,4445,8083",
@@ -221,9 +221,10 @@ $ ./mx1014 -r -i targets.txt
   zookeeper: "2181,2888,3888",
   dubbo: "20880",
   solr: "8983",
+  finereport: "8075",
   websphere_web: "8880,9043,9080,9081,9082,9083,9090.9091,9443",
   websphere: "websphere_web,2809,5558,5578,7276,7286,9060,9100,9353,9401,9402",
-  activemq: "8161",
+  activemq: "8161,61616",
   weblogic: "7000,7001,7002,7003,7010,7070,7071",
   squid: "3128",
   rabbitmq: "15672",
@@ -348,6 +349,7 @@ $ ./mx1014 -r -i targets.txt
   rocketmq: "9876,10909,10911,10912",
   vmware: "9875,5480",
   x11: "6000",
+  legendsec: "48620",
   log4j: "4712", # log4j SocketAppender
 }
 ```
