@@ -7,7 +7,7 @@
 
 ## Version
 
-2.4.1 - [版本修改日志](CHANGELOG.md)
+2.4.2 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -37,7 +37,7 @@ $ ./mx1014
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.4.1
+  .001              1001               Version 2.4.2
   .1.              ...1.
 
 
@@ -206,9 +206,9 @@ $ ./mx1014 -r -i targets.txt
 #  jboss: https://www.caldow.cn/archives/4070
 {
   # pentest
-  in: "rce,info,brute,web2",
-  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,modbus,smb,log4j,dubbo,jboss,nacos,finereport,legendsec",
-  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone",
+  in: "rce,info,brute,web2,iiot",
+  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,smb,log4j,dubbo,jboss,nacos,finereport,legendsec",
+  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone,database1,database2,upnp",
   brute: "ftp,ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,rtsp,kerberos,ldap,socks",
 
   # web
@@ -218,8 +218,8 @@ $ ./mx1014 -r -i targets.txt
   jboss: "jboss_remoting,jboss_rmi,80,1111,8080,8443,45566",
   jboss_rmi: "1098,4444,4445,8083",
   jboss_remoting: "4446,4447,4457",
-  zookeeper: "2181,2888,3888",
-  dubbo: "20880",
+  zookeeper: "2171,2181,2888,3888",
+  dubbo: "20880,20881",
   solr: "8983",
   finereport: "8075",
   websphere_web: "8880,9043,9080,9081,9082,9083,9090.9091,9443",
@@ -252,7 +252,7 @@ $ ./mx1014 -r -i targets.txt
   seeyon: "8001",
   java_ws: "8887",
   ifw8: "880",
-  zabbix: "8069",
+  zabbix: "8069,10050",
   nacos: "7848,8848,9848,9849",
 
   # mail
@@ -263,8 +263,8 @@ $ ./mx1014 -r -i targets.txt
   smtp: "25,465,587,2525",
 
   # database
-  database1: "mssql,oracle,mysql,postgresql,redis,memcache,mongodb",
-  database2: "mssql,oracle,mysql,sybase,db2,postgresql,couchdb,redis,memcache,hbase,mongodb,hsqldb,cassandra,kingbase8,dameng",
+  database1: "mssql,oracle,mysql,postgresql,redis,memcache,mongodb,neo4j",
+  database2: "mssql,oracle,mysql,sybase,db2,postgresql,couchdb,redis,memcache,hbase,mongodb,hsqldb,cassandra,kingbase8,dameng,neo4j",
   mysql: "3306,3307,3308",
   mssql: "1433,1434",
   oracle: "210,1158,1521",
@@ -280,11 +280,27 @@ $ ./mx1014 -r -i targets.txt
   cassandra: "9042,9160",
   kingbase8: "54321",
   dameng: "5236",
+  neo4j: "7687",
 
   # os
   win: "ssh,ftp,telnet,kerberos,msrpc,vnc,netbios,ldap,smb,socks,rdp,winrm,ntp",
   linux: "ssh,ftp,telnet,rlogin,vnc,x11,nfs,whois,socks,ntp,isakmp,rsync,rpc,ipmi,rusersd",
   mac: "ssh,afp,vnc,nfs",
+
+  # iiot
+  iiot: "dnp,modbus,s7,ethernet,pcworx,atg,melsecq,omron,crimson,codesys,iec104,procon",
+  dnp: "20000",
+  modbus: "502",
+  s7: "102",
+  ethernet: "44818",
+  pcworx: "1962",
+  atg: "10001",
+  melsecq: "5007",
+  omron: "9600",
+  crimson: "789",
+  codesys: "1200",
+  iec104: "2404",
+  procon: "20547",
 
   # other
   kerberos: "88",
@@ -314,12 +330,12 @@ $ ./mx1014 -r -i targets.txt
   msrpc: "135,593",
   irc: "194,6660",
   ldap: "389,636,3268,3269",
-  modbus: "502",
   rtsp: "554,8554",
   ipmi: "623",
   rusersd: "1026",
   amqp: "5672",
   kafka: "9092",
+  upnp: "49152",
   hp: "5555,5556",
   altassian: "4990",
   lotus: "1352",
@@ -347,7 +363,7 @@ $ ./mx1014 -r -i targets.txt
   svn: "3690",
   snmp: "161",
   epmd: "4369",
-  hadoop: "8020,8040,8041,8042,8480,8485,9000,9083,19888,41414,50010,50020,50070,50075,50090,50470,50475",
+  hadoop: "8020,8040,8041,8042,8088,8480,8485,9000,9083,10000,10003,14000,19888,41414,50010,50020,50030,50060,50070,50075,50090,50470,50475,60010,60030",
   rmi: "jboss_rmi,1028,1098,1090,4444,4445,11099,47001,10999,1099",
   jndi: "rmi,1000,1001,1100,1101,5001,8083,9999,10001,10999,11099,19001",
   jmx: "8093,8686,9010,9011,9012,50500,61616",
