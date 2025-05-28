@@ -20,7 +20,7 @@ func ErrPrint(msg string) {
     os.Exit(1)
 }
 
-func secondToTime(second int) string {
+func secondToTime(second uint64) string {
     day := second / 86400
     hour := (second % 86400) / 3600
     minute := (second % 3600) / 60
@@ -213,13 +213,13 @@ func ParsePortRange(portList string, ignoreFuzz bool) []string {
 
 func ParseTarget(target string, defaultPorts []string) error {
     var ports []string
-    var portsLen int
+    var portsLen uint64
 
     if strings.ContainsAny(target, ":") {
         items := strings.Split(target, ":")
         target = items[0]
         ports = ParsePortRange(items[1], false)
-        portsLen = len(ports)
+        portsLen = uint64(len(ports))
     } else {
         ports = defaultPorts
         portsLen = defaultPortsLen
@@ -259,7 +259,7 @@ func ParseTarget(target string, defaultPorts []string) error {
         portMap[port] = append(portMap[port], target)
     }
 
-    hostCount := len(hostMap[target])
+    hostCount := uint64(len(hostMap[target]))
     hostTotal += hostCount
     total += portsLen * hostCount
     mutex.Unlock()
@@ -334,7 +334,7 @@ func ProgressBar() {
         second := time.Since(startTime).Seconds()
         pps := float64(doneCount) / second
         remaining := second*100/float64(rate) - second
-        remainingTime := secondToTime(int(remaining))
+        remainingTime := secondToTime(uint64(remaining))
         log.Printf("# Progress (%d/%d) up: %d, open: %d, discard: %d, pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, total, hostUpCount, openCount, hostDiscard, pps, rate, remainingTime)
     }
 }
@@ -421,7 +421,7 @@ func SendPacket(targetAddr string) {
 
 func RejectAllOpenProgressBar() {
     doneCount = 0
-    testTotal := hostTotal * rejectAllOpenTimes
+    testTotal := hostTotal * uint64(rejectAllOpenTimes)
     stopRejectAllOpenProgressBar = false
     for {
         time.Sleep(time.Second * time.Duration(progressDelay))
@@ -432,7 +432,7 @@ func RejectAllOpenProgressBar() {
         second := time.Since(startTime).Seconds()
         pps := float64(doneCount) / second
         remaining := second*100/float64(rate) - second
-        remainingTime := secondToTime(int(remaining))
+        remainingTime := secondToTime(uint64(remaining))
         log.Printf("# reject all open (%d/%d) pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, testTotal, pps, rate, remainingTime)
     }
 }
@@ -612,13 +612,13 @@ var (
     rejectCount                  int
     rejectOpenCount              = make(map[string]int)
 
-    defaultPortsLen int
+    defaultPortsLen uint64
     mutex           sync.Mutex
 
-    total             = 0
+    total uint64      = 0
     hostUpCount       = 0
     hostDiscard       = 0
-    hostTotal         = 0
+    hostTotal uint64   = 0
     openCount         = 0
     startTime         = time.Now()
     portMap           = make(map[string][]string) // port: rawtargets
@@ -799,7 +799,7 @@ func usage() {
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.4.2
+  .001              1001               Version 2.4.3
   .1.              ...1.
 
 
@@ -847,7 +847,7 @@ func init() {
     flag.StringVar(&portRanges, "p", rawCommonPorts, " Ports  Default port ranges (Default is \"in\" port group)")
     flag.BoolVar(&showPorts, "sp", false, "       Only show default ports (see -p)")
     flag.StringVar(&excludePortRanges, "ep", "", "Ports  Exclude port (see -p)")
-    flag.StringVar(&headPortRanges, "hp", "80,443,8080,22,445,3389", "Ports  Priority scan port (Default 80,443,8080,22,445,3389)")
+    flag.StringVar(&headPortRanges, "hp", "80,443,8080,22,445,3389,in", "Ports  Priority scan port (Default 80,443,8080,22,445,3389,in)")
     flag.BoolVar(&fuzzPort, "fuzz", false, "     Fuzz Port")
 
     // Connect
@@ -903,7 +903,7 @@ func Run() {
     }
 
     defaultPorts := ParsePortRange(portRanges, false)
-    defaultPortsLen = len(defaultPorts)
+    defaultPortsLen = uint64(len(defaultPorts))
     if showPorts {
         fmt.Printf("# Count: %d\n", defaultPortsLen)
         fmt.Println(strings.Join(defaultPorts, ","))
@@ -982,7 +982,7 @@ func Run() {
         for _, eport := range excludePorts {
             if portMap[eport] != nil {
                 for _, rawTarget := range portMap[eport] {
-                    total -= len(hostMap[rawTarget])
+                    total -= uint64(len(hostMap[rawTarget]))
                 }
                 delete(portMap, eport)
             }
@@ -1002,7 +1002,7 @@ func Run() {
     }
 
     if rejectAllOpen {
-        log.Printf("# %s Start automatically reject all-open targets, scanning %d hosts... (reqs: %d)\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, hostTotal*rejectAllOpenTimes)
+        log.Printf("# %s Start automatically reject all-open targets, scanning %d hosts... (reqs: %d)\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, hostTotal*uint64(rejectAllOpenTimes))
         RejectAllOpenTargets()
         endTime := time.Now().Format("2006/01/02 15:04:05")
         log.Printf("# %s Finished. reject all-open %d hosts.\n\n", endTime, rejectCount)
@@ -1018,14 +1018,14 @@ func Run() {
     log.Printf("# %s Start scanning %d hosts...%s (reqs: %d)\n\n", startTime.Format("2006/01/02 15:04:05"), hostTotal, EchoModePrompt, total)
     PortScan()
     spendTime := time.Since(startTime).Seconds()
-    pps := int(float64(total) / spendTime)
+    pps := uint64(float64(total) / spendTime)
     if pps > total {
         pps = total
     }
-    aliveRate := hostUpCount * 100.0 / hostTotal
+    aliveRate := uint64(hostUpCount) * 100.0 / hostTotal
     endTime := time.Now().Format("2006/01/02 15:04:05")
     log.Printf("\n# %s Finished %d tasks.\n", endTime, total)
-    log.Printf("# up: %d%% (%d/%d), discard: %d, open: %d, pps: %d, time: %s\n", aliveRate, hostUpCount, hostTotal, hostDiscard, openCount, pps, secondToTime(int(spendTime)))
+    log.Printf("# up: %d%% (%d/%d), discard: %d, open: %d, pps: %d, time: %s\n", aliveRate, hostUpCount, hostTotal, hostDiscard, openCount, pps, secondToTime(uint64(spendTime)))
     if outfile != "" {
         log.Printf("# Save the result to \"%s\"\n", outfile)
     }
