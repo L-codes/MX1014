@@ -24,7 +24,7 @@ portgroup.transform_values!{|ports|
       res_ports << port.to_i
     end
   end
-  res_ports.sort.uniq
+  res_ports.uniq
 }
 
 portgroup_golang = portgroup.map{|name, ports| %Q|      "#{name}": []int{ #{ports.join(",")} },| }.join("\n")
