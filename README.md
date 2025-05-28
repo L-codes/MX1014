@@ -7,7 +7,7 @@
 
 ## Version
 
-2.4.2 - [版本修改日志](CHANGELOG.md)
+2.5.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -206,10 +206,10 @@ $ ./mx1014 -r -i targets.txt
 #  jboss: https://www.caldow.cn/archives/4070
 {
   # pentest
-  in: "rce,info,brute,web2,iiot",
-  rce: "rlogin,jndi,nfs,oracle_ftp,docker,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,redis,jdwp,ajp,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,vmware,rocketmq,lpd,distcc,epmd,ipmi,smb,log4j,dubbo,jboss,nacos,finereport,legendsec",
-  info: "ftp,ssh,telnet,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone,database1,database2,upnp",
-  brute: "ftp,ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,rtsp,kerberos,ldap,socks",
+  in: "web1,brute,rce,web2,info,iiot",
+  rce: "redis,jdwp,ajp,docker,vmware,nacos,finereport,rocketmq,rlogin,jndi,nfs,oracle_ftp,squid,cisco,glassfish,altassian,hp,vnc,nodejs_debug,zabbix,nexus,activemq,zoho,hashicorp,solr,php_xdebug,kafka,elasticsearch,lpd,distcc,epmd,ipmi,log4j,dubbo,jboss,legendsec",
+  info: "ftp,mail,snmp,rsync,lotus,zookeeper,kibana,pcanywhere,hadoop,checkpoint,iscsi,saprouter,svn,rpc,rusersd,rtsp,amqp,msrpc,netbios,grafana,phone,database1,database2,upnp",
+  brute: "ssh,smb,winrm,rsync,vnc,redis,rdp,database1,telnet,mail,kerberos,ldap,socks,ftp,rtsp",
 
   # web
   web1: "80,443,8080",
@@ -304,7 +304,7 @@ $ ./mx1014 -r -i targets.txt
 
   # other
   kerberos: "88",
-  netbios: "137,138,139",
+  netbios: "139", # UDP 137 138
   smb: "139,445",
   rdp: "3389",
   winrm: "5985,5986",
