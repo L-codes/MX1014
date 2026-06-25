@@ -422,7 +422,7 @@ func socks5Dial(proxyAddr, targetAddr string, auth *socks5Auth, timeout time.Dur
     return conn, nil
 }
 
-// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, unkown: -1, abort: -2
+// return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, closed_or_filtered: 7, unkown: -1, abort: -2
 func TcpConnect(targetAddr string) int {
     var conn net.Conn
     var err error
@@ -457,11 +457,14 @@ func TcpConnect(targetAddr string) int {
         } else if strings.Contains(errMsg, "A socket operation was attempted to an unreachable") {
             return 6
         } else if strings.Contains(errMsg, "too many open files") {
+			log.Printf("# too many open files !!!")
+			log.Printf("# Please lower the `-t` value and run again")
             return -2
         } else if proxy != "" {
 			if strings.Contains(errMsg, "EOF") {
 				return 1
 			} else if strings.Contains(errMsg, "socks5: authentication failed") {
+				log.Printf("# SOCKS service authentication failed")
 				return -2
 			} else {
 				log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
@@ -473,6 +476,31 @@ func TcpConnect(targetAddr string) int {
         }
     }
     defer conn.Close()
+
+    if proxy != "" {
+        if echoMode {
+			port := strings.Split(targetAddr, ":")[1]
+			msg := strings.Replace(senddata, "%port%", port, -1)
+            conn.Write([]byte(msg))
+
+            conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+            buf := make([]byte, 1024)
+            for {
+                _, err := conn.Read(buf)
+                if err != nil {
+                    if err == io.EOF {
+                        return 7
+                    }
+                    if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+                        return 0
+                    }
+                    return 0
+                }
+                return 0
+            }
+        }
+    }
+
     if echoMode {
         port := strings.Split(targetAddr, ":")[1]
         msg := strings.Replace(senddata, "%port%", port, -1)
@@ -573,6 +601,10 @@ func SendPacket(targetAddr string) {
                 if verbose {
                     log.Printf("# %s no route to host, discard the host\n", host)
                 }
+            case 7: //closed or filtered
+                if verbose {
+                    fmt.Printf("# closed or filtered: %s\n", targetAddr)
+                }
             case 4: //denied
                 targetFilterCount[host] = autoDiscard + 1
             case 5: //down
@@ -580,8 +612,6 @@ func SendPacket(targetAddr string) {
             case 6: //error_host
                 targetFilterCount[host] = autoDiscard + 1
             case -2: //abort
-                log.Printf("# too many open files !!!")
-                log.Printf("# Please lower the `-t` value and run again")
                 os.Exit(-2)
             case -1: //unkown
             }
