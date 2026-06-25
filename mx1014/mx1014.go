@@ -267,9 +267,171 @@ func ParseTarget(target string, defaultPorts []string) error {
     return nil
 }
 
+type socks5Auth struct {
+    username string
+    password string
+}
+
+func socks5Dial(proxyAddr, targetAddr string, auth *socks5Auth, timeout time.Duration) (net.Conn, error) {
+    conn, err := net.DialTimeout("tcp", proxyAddr, timeout)
+    if err != nil {
+        return nil, err
+    }
+
+    deadline := time.Now().Add(timeout)
+    conn.SetDeadline(deadline)
+
+    // Negotiate auth method
+    var msg []byte
+    if auth != nil {
+        msg = []byte{0x05, 0x02, 0x00, 0x02}
+    } else {
+        msg = []byte{0x05, 0x01, 0x00}
+    }
+    if _, err := conn.Write(msg); err != nil {
+        conn.Close()
+        return nil, err
+    }
+
+    resp := make([]byte, 2)
+    if _, err := io.ReadFull(conn, resp); err != nil {
+        conn.Close()
+        return nil, err
+    }
+    if resp[0] != 0x05 {
+        conn.Close()
+        return nil, fmt.Errorf("socks5: unsupported version %d", resp[0])
+    }
+
+    if resp[1] == 0x02 {
+        if auth == nil {
+            conn.Close()
+            return nil, fmt.Errorf("socks5: server requires authentication")
+        }
+        // RFC 1929 username/password auth
+        authMsg := []byte{0x01, byte(len(auth.username))}
+        authMsg = append(authMsg, []byte(auth.username)...)
+        authMsg = append(authMsg, byte(len(auth.password)))
+        authMsg = append(authMsg, []byte(auth.password)...)
+        if _, err := conn.Write(authMsg); err != nil {
+            conn.Close()
+            return nil, err
+        }
+        authResp := make([]byte, 2)
+        if _, err := io.ReadFull(conn, authResp); err != nil {
+            conn.Close()
+            return nil, err
+        }
+        if authResp[1] != 0x00 {
+            conn.Close()
+            return nil, fmt.Errorf("socks5: authentication failed")
+        }
+    } else if resp[1] != 0x00 {
+        conn.Close()
+        return nil, fmt.Errorf("socks5: unsupported auth method %d", resp[1])
+    }
+
+    // Build connect request
+    host, portStr, err := net.SplitHostPort(targetAddr)
+    if err != nil {
+        conn.Close()
+        return nil, err
+    }
+    port, err := strconv.Atoi(portStr)
+    if err != nil {
+        conn.Close()
+        return nil, err
+    }
+
+    var req []byte
+    req = append(req, 0x05, 0x01, 0x00) // ver, cmd(connect), rsv
+
+    if ip := net.ParseIP(host); ip != nil {
+        if ip4 := ip.To4(); ip4 != nil {
+            req = append(req, 0x01)
+            req = append(req, ip4...)
+        } else {
+            req = append(req, 0x04)
+            req = append(req, ip.To16()...)
+        }
+    } else {
+        req = append(req, 0x03, byte(len(host)))
+        req = append(req, []byte(host)...)
+    }
+    req = append(req, byte(port>>8), byte(port))
+
+    if _, err := conn.Write(req); err != nil {
+        conn.Close()
+        return nil, err
+    }
+
+    // Read response header
+    respHeader := make([]byte, 4)
+    if _, err := io.ReadFull(conn, respHeader); err != nil {
+        conn.Close()
+        return nil, err
+    }
+    if respHeader[0] != 0x05 {
+        conn.Close()
+        return nil, fmt.Errorf("socks5: response version %d", respHeader[0])
+    }
+
+    // Translate SOCKS5 response codes
+    switch respHeader[1] {
+    case 0x00: // success
+    case 0x05: // connection refused
+        conn.Close()
+        return nil, fmt.Errorf("connection refused")
+    case 0x03: // network unreachable
+        conn.Close()
+        return nil, fmt.Errorf("network is unreachable")
+    case 0x04: // host unreachable
+        conn.Close()
+        return nil, fmt.Errorf("no route to host")
+    default:
+        conn.Close()
+        return nil, fmt.Errorf("socks5: request failed (code %d)", respHeader[1])
+    }
+
+    // Read remaining address/port (variable length)
+    atyp := respHeader[3]
+    var addrLen int
+    switch atyp {
+    case 0x01:
+        addrLen = 4
+    case 0x03:
+        lenByte := make([]byte, 1)
+        if _, err := io.ReadFull(conn, lenByte); err != nil {
+            conn.Close()
+            return nil, err
+        }
+        addrLen = int(lenByte[0])
+    case 0x04:
+        addrLen = 16
+    default:
+        conn.Close()
+        return nil, fmt.Errorf("socks5: unsupported address type %d", atyp)
+    }
+    addrBytes := make([]byte, addrLen+2) // addr + port
+    if _, err := io.ReadFull(conn, addrBytes); err != nil {
+        conn.Close()
+        return nil, err
+    }
+
+    conn.SetDeadline(time.Time{})
+    return conn, nil
+}
+
 // return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, unkown: -1, abort: -2
 func TcpConnect(targetAddr string) int {
-    conn, err := net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
+    var conn net.Conn
+    var err error
+
+    if proxy != "" {
+        conn, err = socks5Dial(proxyAddr, targetAddr, proxyAuth, time.Millisecond*time.Duration(timeout))
+    } else {
+        conn, err = net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
+    }
     if err != nil {
         errMsg := err.Error()
         if strings.Contains(errMsg, "refused") {
@@ -296,6 +458,15 @@ func TcpConnect(targetAddr string) int {
             return 6
         } else if strings.Contains(errMsg, "too many open files") {
             return -2
+        } else if proxy != "" {
+			if strings.Contains(errMsg, "EOF") {
+				return 1
+			} else strings.Contains(errMsg, "socks5: authentication failed") {
+				return -2
+			} else {
+				log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
+				return -1
+			}
         } else {
             log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
             return -1
@@ -606,6 +777,10 @@ var (
     gatewayRanges       string
     disableProtocolName bool
 
+    proxy               string
+    proxyAddr           string
+    proxyAuth           *socks5Auth
+
     stopRejectAllOpenProgressBar bool
     rejectAllOpen                bool
     rejectAllOpenTimes           int
@@ -818,7 +993,7 @@ Options:
     options := map[string][]string{
         "Target":  []string{"i", "I", "g", "sh", "cnet", "r", "R"},
         "Port":    []string{"p", "sp", "ep", "hp", "fuzz"},
-        "Connect": []string{"t", "T", "u", "e", "A", "a"},
+        "Connect": []string{"t", "T", "u", "e", "A", "a", "proxy"},
         "Output":  []string{"o", "c", "d", "D", "l", "P", "v"},
     }
     for _, category := range []string{"Target", "Port", "Connect", "Output"} {
@@ -857,6 +1032,7 @@ func init() {
     flag.BoolVar(&echoMode, "e", false, "        Echo mode (TCP needs to be manually)")
     flag.BoolVar(&forceScan, "A", false, "        Disable auto discard")
     flag.IntVar(&autoDiscard, "a", 512, " Int    Too many filtered, Discard the host (Default is 512)")
+    flag.StringVar(&proxy, "proxy", "", " Str    SOCKS5 proxy address (socks5://user:pass@host:port)")
 
     // Output
     flag.StringVar(&outfile, "o", "", " File   Output file path")
@@ -900,6 +1076,30 @@ func Run() {
     } else {
         out := io.MultiWriter(os.Stdout)
         log.SetOutput(out)
+    }
+
+    if proxy != "" {
+        if !strings.HasPrefix(proxy, "socks5://") {
+            ErrPrint("Invalid proxy scheme, must be socks5://")
+        }
+        rest := proxy[9:]
+        atIndex := strings.LastIndex(rest, "@")
+        if atIndex != -1 {
+            userPass := rest[:atIndex]
+            proxyAddr = rest[atIndex+1:]
+            colonIndex := strings.Index(userPass, ":")
+            if colonIndex != -1 {
+                proxyAuth = &socks5Auth{username: userPass[:colonIndex], password: userPass[colonIndex+1:]}
+            } else {
+                proxyAuth = &socks5Auth{username: userPass}
+            }
+        } else {
+            proxyAddr = rest
+        }
+        if proxyAddr == "" {
+            ErrPrint("Invalid proxy address")
+        }
+        log.Printf("# Using SOCKS5 proxy: %s\n", proxyAddr)
     }
 
     defaultPorts := ParsePortRange(portRanges, false)

@@ -197,6 +197,11 @@ $ ./mx1014 -sp -p 80 -fuzz
 $ ./mx1014 -r -i targets.txt
 ```
 
+9. 通过 socks5 代理，进行TCP端口状态判断
+```ruby
+$ ./mx1014 -proxy socks5://1.1.1.1 192.168.1.1
+```
+
 
 ## Port Group
 ```ruby
