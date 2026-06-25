@@ -461,7 +461,7 @@ func TcpConnect(targetAddr string) int {
         } else if proxy != "" {
 			if strings.Contains(errMsg, "EOF") {
 				return 1
-			} else strings.Contains(errMsg, "socks5: authentication failed") {
+			} else if strings.Contains(errMsg, "socks5: authentication failed") {
 				return -2
 			} else {
 				log.Printf("# [Unkown!!!] %s => %s", targetAddr, err)
@@ -1098,6 +1098,9 @@ func Run() {
         }
         if proxyAddr == "" {
             ErrPrint("Invalid proxy address")
+        }
+        if udpmode {
+            ErrPrint("UDP mode (-u) is not supported with SOCKS5 proxy (-proxy)")
         }
         log.Printf("# Using SOCKS5 proxy: %s\n", proxyAddr)
     }
