@@ -351,7 +351,7 @@ $ ./mx1014 -r -i targets.txt
   kubectl_proxy: "8080,8081",
   kube_apiserver: "6443,8080",
   kube_proxy: "10256,31442",
-  kubelet_api: "4149,10248,10250,10255",
+  kubelet_api: "4149,10248,10250,10255,10257,10259",
   kube_weave: "6781,6782,6783",
   kubeflow_dashboard: "8080",
   etcd: "2379,2380",
