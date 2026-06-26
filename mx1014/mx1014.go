@@ -773,7 +773,8 @@ func FileReadlines(readfile string) []string {
     for scanner.Scan() {
         line := strings.Trim(scanner.Text(), " \t\f\v")
         if line != "" && line[0] != 0x23 { // 0x23 == #
-            lines = append(lines, line)
+			items := strings.Split(line, " ")
+            lines = append(lines, items[0])
         }
     }
     return lines
