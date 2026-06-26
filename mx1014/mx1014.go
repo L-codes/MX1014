@@ -196,7 +196,7 @@ func ParsePortRange(portList string, ignoreFuzz bool) []string {
         } else {
             singlePort, err := strconv.Atoi(i)
             if err != nil {
-                ErrPrint("SinglePort strconv error")
+				ErrPrint("SinglePort strconv error: " + portList)
             }
             if singlePort > 65535 || singlePort <= 0 {
                 ErrPrint("Wrong port number: " + i)
