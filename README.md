@@ -7,7 +7,7 @@
 
 ## Version
 
-2.5.0 - [版本修改日志](CHANGELOG.md)
+2.6.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
