@@ -4,23 +4,28 @@
 package mx1014
 
 import (
-    "fmt"
-    "syscall"
+	"runtime"
+
+	"golang.org/x/sys/unix"
 )
 
 func SetUlimit() {
-    var rLimit syscall.Rlimit
-    err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-    if err != nil {
-        fmt.Println("# Error Getting Rlimit ", err)
-    }
-    if rLimit.Cur < 99999 {
-        rLimit.Max = 999999
-        rLimit.Cur = 999999
+	const max = uint64(999999)
 
-        err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-        if err != nil {
-            fmt.Println("# Error Setting Rlimit ", err)
-        }
-    }
+	var rLimit unix.Rlimit
+	if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rLimit); err != nil {
+		return
+	}
+	if rLimit.Cur >= max {
+		return
+	}
+
+	setVal := max
+	if runtime.GOOS == "darwin" && setVal > 24576 {
+		setVal = 24576
+	}
+
+	rLimit.Max = setVal
+	rLimit.Cur = setVal
+	unix.Setrlimit(unix.RLIMIT_NOFILE, &rLimit)
 }
