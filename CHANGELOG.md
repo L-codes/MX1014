@@ -1,5 +1,9 @@
 # Change Log
 
+### v2.7.0:
+    增强:
+        1. Unix的 set ulimit 改用 sys.unix 实现，解决 macos 上 ulimit 无法改成功的问题
+
 ### v2.6.0:
     新特征:
         1. 新增 -proxy socks5://[user:pass]@ip:port 参数，支持透过 socks 代理探测端口状态
