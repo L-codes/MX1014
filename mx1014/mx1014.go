@@ -544,6 +544,10 @@ func SendPacket(targetAddr string) {
     } else {
         mutex.Lock()
         host := strings.Split(targetAddr, ":")[0]
+        if aliveMode && targetFilterCount[host] >= 65536 {
+            mutex.Unlock()
+            return
+        }
         var filterCount int
         if forceScan {
             filterCount = 65536
@@ -563,11 +567,12 @@ func SendPacket(targetAddr string) {
                 if targetFilterCount[host] < 65536 { // First found alive
                     hostUpCount++
                     targetFilterCount[host] = 65536
+                    if aliveMode {
+                        log.Print(host)
+                    }
                 }
                 openCount++
-                if aliveMode {
-                    log.Print(host)
-                } else {
+                if !aliveMode {
                     port := strings.Split(targetAddr, ":")[1]
                     servers := portServersMap[port]
                     if disableProtocolName || servers == "" {
@@ -580,10 +585,11 @@ func SendPacket(targetAddr string) {
                 if targetFilterCount[host] < 65536 { // First found alive
                     hostUpCount++
                     targetFilterCount[host] = 65536
+                    if aliveMode {
+                        log.Print(host)
+                    }
                 }
-                if aliveMode {
-                    log.Print(host)
-                } else if verbose || closedMode {
+                if !aliveMode && (verbose || closedMode) {
                     fmt.Printf("# closed: %s\n", targetAddr)
                 }
             case 2: //filtered
@@ -1057,7 +1063,7 @@ func init() {
     flag.BoolVar(&fuzzPort, "fuzz", false, "     Fuzz Port")
 
     // Connect
-    flag.IntVar(&numOfgoroutine, "t", 512, " Int    The Number of Goroutine (Default is 512)")
+    flag.IntVar(&numOfgoroutine, "t", 2048, " Int    The Number of Goroutine (Default is 2048)")
     flag.IntVar(&timeout, "T", 1980, " Int    TCP Connect Timeout (Default is 1980ms)")
     flag.BoolVar(&udpmode, "u", false, "        UDP spray")
     flag.BoolVar(&echoMode, "e", false, "        Echo mode (TCP needs to be manually)")
