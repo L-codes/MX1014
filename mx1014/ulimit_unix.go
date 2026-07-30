@@ -4,6 +4,7 @@
 package mx1014
 
 import (
+	"log"
 	"runtime"
 
 	"golang.org/x/sys/unix"
@@ -21,11 +22,14 @@ func SetUlimit() {
 	}
 
 	setVal := max
-	if runtime.GOOS == "darwin" && setVal > 24576 {
-		setVal = 24576
+	if runtime.GOOS == "darwin" && rLimit.Cur > 24576 {
+		return
 	}
 
+	old := rLimit.Cur
 	rLimit.Max = setVal
 	rLimit.Cur = setVal
-	unix.Setrlimit(unix.RLIMIT_NOFILE, &rLimit)
+	if err := unix.Setrlimit(unix.RLIMIT_NOFILE, &rLimit); err == nil {
+		log.Printf("# Set ulimit %d to %d\n", old, setVal)
+	}
 }
