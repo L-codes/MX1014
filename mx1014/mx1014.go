@@ -534,7 +534,7 @@ func ProgressBar() {
         pps := float64(doneCount) / second
         remaining := second*100/float64(rate) - second
         remainingTime := secondToTime(uint64(remaining))
-        log.Printf("# Progress (%d/%d) up: %d, open: %d, discard: %d, pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, total, hostUpCount, openCount, hostDiscard, pps, rate, remainingTime)
+        log.Printf("# Progress %0.f%% (%d/%d) up:%d open:%d discard:%d pps:%.0f ET:%s RD:%s\n", rate, doneCount, total, hostUpCount, openCount, hostDiscard, pps, secondToTime(uint64(second)), remainingTime)
     }
 }
 

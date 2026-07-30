@@ -1,8 +1,9 @@
 # Change Log
 
-### v2.7.0:
+### Feature:
     增强:
-        1. Unix的 set ulimit 改用 sys.unix 实现，解决 macos 上 ulimit 无法改成功的问题
+        1. Unix 的 set ulimit 改用 sys.unix 实现，解决 macos 上 ulimit 无法改成功的问题
+        2. 优化进度条打印信息格式，并新增了已用时间
 
 ### v2.6.0:
     新特征:
