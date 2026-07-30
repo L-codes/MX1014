@@ -423,14 +423,14 @@ func socks5Dial(proxyAddr, targetAddr string, auth *socks5Auth, timeout time.Dur
 }
 
 // return open: 0, closed: 1, filtered: 2, noroute: 3, denied: 4, down: 5, error_host: 6, closed_or_filtered: 7, unkown: -1, abort: -2
-func TcpConnect(targetAddr string) int {
+func TcpConnect(targetAddr string, connTimeout int) int {
     var conn net.Conn
     var err error
 
     if proxy != "" {
-        conn, err = socks5Dial(proxyAddr, targetAddr, proxyAuth, time.Millisecond*time.Duration(timeout))
+        conn, err = socks5Dial(proxyAddr, targetAddr, proxyAuth, time.Millisecond*time.Duration(connTimeout))
     } else {
-        conn, err = net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(timeout))
+        conn, err = net.DialTimeout("tcp", targetAddr, time.Millisecond*time.Duration(connTimeout))
     }
     if err != nil {
         errMsg := err.Error()
@@ -555,12 +555,19 @@ func SendPacket(targetAddr string) {
             filterCount = targetFilterCount[host]
         }
         mutex.Unlock()
+
+        // Use reduced timeout for hosts with excessive filtered ports
+        hostTimeout := timeout
+        if filterCount >= filteredTimeoutThreshold {
+            hostTimeout = timeout / filteredTimeoutDivisor
+        }
+
         // case filterCount
         // when ...autoDiscard      when continuescan
         // when autoDiscard...65536 when stopscan
         // when 65536..             when forcescan
         if filterCount >= 65536 || filterCount < autoDiscard {
-            flag := TcpConnect(targetAddr)
+            flag := TcpConnect(targetAddr, hostTimeout)
             mutex.Lock()
             switch flag {
             case 0: //open
@@ -595,6 +602,10 @@ func SendPacket(targetAddr string) {
             case 2: //filtered
                 if filterCount < 65536 {
                     targetFilterCount[host]++
+                    if targetFilterCount[host] == filteredTimeoutThreshold {
+						log.Printf("# adjusted timeout: %s -> %dms (filtered >= %d)\n",
+							host, timeout/filteredTimeoutDivisor, filteredTimeoutThreshold)
+                    }
                     if targetFilterCount[host] == autoDiscard { // Just met max
                         hostDiscard++
                     }
@@ -647,7 +658,7 @@ func RejectAllOpenProgressBar() {
 func SendRandTCPPacket(host string) {
 
     targetAddr := host + ":" + RandPort(50000, 65535)
-    flag := TcpConnect(targetAddr)
+    flag := TcpConnect(targetAddr, timeout)
 
     mutex.Lock()
     if flag == 0 {
@@ -785,6 +796,15 @@ func FileReadlines(readfile string) []string {
     }
     return lines
 }
+
+const (
+    // When a host's filtered port count reaches this threshold,
+    // the per-host connect timeout is reduced to improve scan speed.
+    filteredTimeoutThreshold = 100
+    // The divisor applied to the original timeout once the threshold is exceeded.
+    // e.g. 2 means timeout/2 (50% of original).
+    filteredTimeoutDivisor = 2
+)
 
 var (
     // args
@@ -1064,7 +1084,7 @@ func init() {
 
     // Connect
     flag.IntVar(&numOfgoroutine, "t", 2048, " Int    The Number of Goroutine (Default is 2048)")
-    flag.IntVar(&timeout, "T", 1980, " Int    TCP Connect Timeout (Default is 1980ms)")
+    flag.IntVar(&timeout, "T", 1880, " Int    TCP Connect Timeout (Default is 1880ms)")
     flag.BoolVar(&udpmode, "u", false, "        UDP spray")
     flag.BoolVar(&echoMode, "e", false, "        Echo mode (TCP needs to be manually)")
     flag.BoolVar(&forceScan, "A", false, "        Disable auto discard")
