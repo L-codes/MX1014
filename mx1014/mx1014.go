@@ -1089,10 +1089,42 @@ func init() {
     }
 }
 
+func reorderArgs() {
+    raw := os.Args[1:]
+    if len(raw) == 0 {
+        return
+    }
+    var flagArgs, targetArgs []string
+    for i := 0; i < len(raw); i++ {
+        if !strings.HasPrefix(raw[i], "-") {
+            targetArgs = append(targetArgs, raw[i])
+            continue
+        }
+        flagArgs = append(flagArgs, raw[i])
+        if strings.Contains(raw[i], "=") {
+            continue
+        }
+        name := strings.TrimLeft(raw[i], "-")
+        f := flag.CommandLine.Lookup(name)
+        if f == nil {
+            continue
+        }
+        if bf, ok := f.Value.(interface{ IsBoolFlag() bool }); ok && bf.IsBoolFlag() {
+            continue
+        }
+        if i+1 < len(raw) && !strings.HasPrefix(raw[i+1], "-") {
+            flagArgs = append(flagArgs, raw[i+1])
+            i++
+        }
+    }
+    os.Args = append([]string{os.Args[0]}, append(flagArgs, targetArgs...)...)
+}
+
 func Run() {
 
     SetUlimit()
 
+    reorderArgs()
     flag.Parse()
     log.SetFlags(0)
     if outfile != "" {
