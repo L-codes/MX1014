@@ -797,6 +797,106 @@ func FileReadlines(readfile string) []string {
     return lines
 }
 
+type excludeMatcher struct {
+    ips   map[string]bool
+    cidrs []*net.IPNet
+}
+
+func (e *excludeMatcher) match(ip string) bool {
+    if e.ips[ip] {
+        return true
+    }
+    p := net.ParseIP(ip)
+    if p == nil {
+        return false
+    }
+    for _, c := range e.cidrs {
+        if c.Contains(p) {
+            return true
+        }
+    }
+    return false
+}
+
+func loadExcludeList(filePath string) *excludeMatcher {
+    e := &excludeMatcher{ips: make(map[string]bool)}
+    for _, line := range FileReadlines(filePath) {
+        if strings.ContainsAny(line, "/") {
+            _, ipnet, err := net.ParseCIDR(line)
+            if err == nil {
+                e.cidrs = append(e.cidrs, ipnet)
+            }
+        } else if IsIP(line) && strings.ContainsAny(line, "*-") {
+            hosts, err := IPWildcard(line)
+            if err == nil {
+                for _, h := range hosts {
+                    e.ips[h] = true
+                }
+            }
+        } else {
+            ips, err := net.LookupHost(line)
+            if err != nil {
+                if IsIP(line) {
+                    e.ips[line] = true
+                }
+                continue
+            }
+            for _, ip := range ips {
+                e.ips[ip] = true
+            }
+        }
+    }
+    return e
+}
+
+func removeFromPortMap(rawTarget string) {
+    for port, targets := range portMap {
+        newTargets := make([]string, 0, len(targets))
+        for _, t := range targets {
+            if t != rawTarget {
+                newTargets = append(newTargets, t)
+            }
+        }
+        if len(newTargets) == 0 {
+            delete(portMap, port)
+        } else {
+            portMap[port] = newTargets
+        }
+    }
+}
+
+func applyExclusion(e *excludeMatcher) {
+    for rawTarget, hosts := range hostMap {
+        kept := make([]string, 0, len(hosts))
+        for _, host := range hosts {
+            if !e.match(host) {
+                kept = append(kept, host)
+            }
+        }
+        excluded := len(hosts) - len(kept)
+        if excluded == 0 {
+            continue
+        }
+        hostTotal -= uint64(excluded)
+        var portCount uint64
+        for _, targets := range portMap {
+            for _, t := range targets {
+                if t == rawTarget {
+                    portCount++
+                    break
+                }
+            }
+        }
+        total -= portCount * uint64(excluded)
+        if len(kept) == 0 {
+            delete(hostMap, rawTarget)
+            removeFromPortMap(rawTarget)
+        } else {
+            hostMap[rawTarget] = kept
+        }
+    }
+}
+
 const (
     // When a host's filtered port count reaches this threshold,
     // the per-host connect timeout is reduced to improve scan speed.
@@ -812,6 +912,7 @@ var (
     numOfgoroutine      int
     outfile             string
     infile              string
+    excludeFile         string
     timeout             int
     autoDiscard         int
     verbose             bool
@@ -1068,6 +1169,7 @@ Options:
 func init() {
     // Target
     flag.StringVar(&infile, "i", "", " File   Target input from list")
+    flag.StringVar(&excludeFile, "ei", "", "File   Exclude target input from list")
     flag.BoolVar(&ignoreErrHost, "I", false, "        Ignore the wrong address and continue scanning")
     flag.StringVar(&gatewayRanges, "g", "", " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts, "sh", false, "       Show scan target")
@@ -1279,6 +1381,11 @@ func Run() {
                 delete(portMap, eport)
             }
         }
+    }
+
+    // exclude hosts
+    if excludeFile != "" {
+        applyExclusion(loadExcludeList(excludeFile))
     }
 
     if showHosts {
