@@ -59,6 +59,12 @@ func IPCIDR(cidr string) ([]string, error) {
         hosts = hosts[1 : size-1]
     }
 
+    if !seqMode {
+        rand.Shuffle(len(hosts), func(i, j int) {
+            hosts[i], hosts[j] = hosts[j], hosts[i]
+        })
+    }
+
     return hosts, nil
 }
 
@@ -109,6 +115,13 @@ func IPWildcard(target string) ([]string, error) {
             }
         }
     }
+
+    if !seqMode {
+        rand.Shuffle(len(hosts), func(i, j int) {
+            hosts[i], hosts[j] = hosts[j], hosts[i]
+        })
+    }
+
     return hosts, nil
 }
 
@@ -923,6 +936,7 @@ var (
     showPorts           bool
     showHosts           bool
     aliveMode           bool
+    seqMode             bool
     fuzzPort            bool
     cNet                bool
     ignoreErrHost       bool
@@ -1149,7 +1163,7 @@ Options:
 `)
     flagSet := flag.CommandLine
     options := map[string][]string{
-        "Target":  []string{"i", "I", "g", "sh", "cnet", "r", "R"},
+        "Target":  []string{"i", "ei", "I", "g", "sh", "cnet", "seq", "r", "R"},
         "Port":    []string{"p", "sp", "ep", "hp", "fuzz"},
         "Connect": []string{"t", "T", "u", "e", "A", "a", "proxy"},
         "Output":  []string{"o", "c", "d", "D", "l", "P", "v"},
@@ -1174,6 +1188,7 @@ func init() {
     flag.StringVar(&gatewayRanges, "g", "", " Net    Intranet gateway address range (10/172/192/all)")
     flag.BoolVar(&showHosts, "sh", false, "       Show scan target")
     flag.BoolVar(&cNet, "cnet", false, "     C net mode")
+    flag.BoolVar(&seqMode, "seq", false, "      Sequential scan order")
     flag.BoolVar(&rejectAllOpen, "r", false, "        Reject all open targets")
     flag.IntVar(&rejectAllOpenTimes, "R", 1, " Int    Reject all open of tested (Default is 1)")
 
