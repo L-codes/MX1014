@@ -7,7 +7,7 @@
 
 ## Version
 
-2.6.0 - [版本修改日志](CHANGELOG.md)
+3.0.0 - [版本修改日志](CHANGELOG.md)
 
 
 ## Features
@@ -32,13 +32,14 @@
 ```ruby
 $ ./mx1014
 
+
                           ...                                     .
                         .111111111111111.........................1111
       ......111..    .10011111011111110000000000000000111111111100000
   10010000000011.1110000001.111.111......1111111111111111..........
   10twelve0111...   .10001. ..
   100011...          1001               MX1014 by L
-  .001              1001               Version 2.4.2
+  .001              1001               Version 3.0.0
   .1.              ...1.
 
 
@@ -54,31 +55,36 @@ Target Example:
 Options:
   [Target]
     -i  File   Target input from list
+    -ei File   Exclude target input from list
     -I         Ignore the wrong address and continue scanning
     -g  Net    Intranet gateway address range (10/172/192/all)
     -sh        Show scan target
     -cnet      C net mode
+    -seq       Sequential scan order
+    -r         Reject all open targets
+    -R  Int    Reject all open of tested (Default is 1)
 
   [Port]
     -p  Ports  Default port ranges (Default is "in" port group)
     -sp        Only show default ports (see -p)
     -ep Ports  Exclude port (see -p)
-    -hp Ports  Priority scan port (Default 80,443,8080,22,445,3389)
+    -hp Ports  Priority scan port (Default 80,443,8080,22,445,3389,in)
     -fuzz      Fuzz Port
 
   [Connect]
-    -t  Int    The Number of Goroutine (Default is 512)
-    -T  Int    TCP Connect Timeout (Default is 1980ms)
+    -t  Int    The Number of Goroutine (Default is 2048)
+    -T  Int    TCP Connect Timeout (Default is 1880ms)
     -u         UDP spray
     -e         Echo mode (TCP needs to be manually)
     -A         Disable auto discard
     -a  Int    Too many filtered, Discard the host (Default is 512)
+    -proxy  Str    SOCKS5 proxy address (socks5://user:pass@host:port)
 
   [Output]
     -o  File   Output file path
     -c         Allow display of closed ports (Only TCP)
     -d  Str    Specify Echo mode data (Default is "%port%\n")
-    -D  Int    Progress Bar Refresh Delay (Default is 5s)
+    -D  Int    Progress Bar Refresh Delay (Default is 7s)
     -l         Output alive host
     -P         Do not output protocol name
     -v         Verbose mode
