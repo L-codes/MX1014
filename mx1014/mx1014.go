@@ -542,12 +542,18 @@ func ProgressBar() {
     doneCount = 0
     for {
         time.Sleep(time.Second * time.Duration(progressDelay))
-        rate := float64(doneCount) * 100 / float64(total)
+        mutex.Lock()
+        dc := doneCount
+        up := hostUpCount
+        op := openCount
+        discard := hostDiscard
+        mutex.Unlock()
+        rate := float64(dc) * 100 / float64(total)
         second := time.Since(startTime).Seconds()
-        pps := float64(doneCount) / second
+        pps := float64(dc) / second
         remaining := second*100/float64(rate) - second
         remainingTime := secondToTime(uint64(remaining))
-        log.Printf("# Progress %0.f%% (%d/%d) up:%d open:%d discard:%d pps:%.0f ET:%s RD:%s\n", rate, doneCount, total, hostUpCount, openCount, hostDiscard, pps, secondToTime(uint64(second)), remainingTime)
+        log.Printf("# Progress %0.f%% (%d/%d) up:%d open:%d discard:%d pps:%.0f ET:%s RD:%s\n", rate, dc, total, up, op, discard, pps, secondToTime(uint64(second)), remainingTime)
     }
 }
 
@@ -656,15 +662,19 @@ func RejectAllOpenProgressBar() {
     stopRejectAllOpenProgressBar = false
     for {
         time.Sleep(time.Second * time.Duration(progressDelay))
-        if stopRejectAllOpenProgressBar == true {
+        mutex.Lock()
+        stopped := stopRejectAllOpenProgressBar
+        dc := doneCount
+        mutex.Unlock()
+        if stopped {
             break
         }
-        rate := float64(doneCount) * 100 / float64(testTotal)
+        rate := float64(dc) * 100 / float64(testTotal)
         second := time.Since(startTime).Seconds()
-        pps := float64(doneCount) / second
+        pps := float64(dc) / second
         remaining := second*100/float64(rate) - second
         remainingTime := secondToTime(uint64(remaining))
-        log.Printf("# reject all open (%d/%d) pps: %.0f, rate: %0.f%% (RD %s)\n", doneCount, testTotal, pps, rate, remainingTime)
+        log.Printf("# reject all open (%d/%d) pps: %.0f, rate: %0.f%% (RD %s)\n", dc, testTotal, pps, rate, remainingTime)
     }
 }
 
@@ -713,7 +723,9 @@ func RejectAllOpenTargets() {
     }
     wg.Wait()
 
+    mutex.Lock()
     stopRejectAllOpenProgressBar = true
+    mutex.Unlock()
 
     for host, openCount := range rejectOpenCount {
         if openCount == rejectAllOpenTimes {
@@ -1181,6 +1193,7 @@ Options:
 }
 
 func init() {
+	rand.Seed(time.Now().UnixNano())
     // Target
     flag.StringVar(&infile, "i", "", " File   Target input from list")
     flag.StringVar(&excludeFile, "ei", "", "File   Exclude target input from list")
